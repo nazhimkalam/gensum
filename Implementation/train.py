@@ -39,10 +39,10 @@ encoding='latin-1')
 dataset_test = load_dataset('csv', data_files=dataset_path, split='train[80%:]', features=datasets.Features({'ctext': datasets.Value('string'), 'text': datasets.Value('string')}), encoding='latin-1')
 
 # Renaming columns
-dataset_train = dataset_train.rename_column('ctext', 'text')
 dataset_train = dataset_train.rename_column('text', 'summary')
-dataset_test = dataset_test.rename_column('ctext', 'text')
+dataset_train = dataset_train.rename_column('ctext', 'text')
 dataset_test = dataset_test.rename_column('text', 'summary')
+dataset_test = dataset_test.rename_column('ctext', 'text')
 
 # Removing all the None values from the dataset
 dataset_train = dataset_train.filter(lambda x: x['ctext'] is not None and x['text'] is not None)
@@ -92,10 +92,10 @@ def objective(trial: optuna.Trial):
     # )     
 
     # trainer = Trainer(
-    #     model=model,
-    #     args=training_args,
-    #     train_dataset=dataset['train'],
-    #     eval_dataset=dataset['test'])      
+        # model=model,
+        # args=training_args,
+        # train_dataset=dataset['train'],
+        # eval_dataset=dataset['test'])      
     
     # result = trainer.train()     
     # return result.training_loss
@@ -108,12 +108,21 @@ def objective(trial: optuna.Trial):
         per_device_train_batch_size=PER_DEVICE_TRAIN_BATCH,         
         per_device_eval_batch_size=PER_DEVICE_EVAL_BATCH,         
         evaluation_strategy='epoch',
-        disable_tqdm=True,
+        new_zeros=True,
     )
 
     trainer = Seq2SeqTrainer(
-        
+        model=model,    
+        args=training_args,
+        train_dataset=dataset["train"],
+        eval_dataset=dataset["test"],
+        tokenizer=tokenizer,
+        data_collator=data_collator,
+        new_zeros=True,
     )
+
+    result = trainer.train()
+    return result.training_loss
     
 
 # Create the Optuna study
@@ -122,8 +131,12 @@ def objective(trial: optuna.Trial):
 #----------------------------------------------------------------------------------------------------
 
 print_custom('Triggering Optuna study')
-study = optuna.create_study(study_name='hp-search-electra', direction='minimize') 
-study.optimize(func=objective, n_trials=NUM_TRIALS)  
+# study = optuna.create_study(study_name='hp-search-electra', direction='minimize') 
+# study.optimize(func=objective, n_trials=NUM_TRIALS)  
+# trigger optuna study for abstractive text summarization
+study = optuna.create_study(study_name='hp-search-t5', direction='minimize')
+study.optimize(func=objective, n_trials=NUM_TRIALS)
+
 
 # Get the best study hyperparameters
 print_custom('Finding study best parameters....')
