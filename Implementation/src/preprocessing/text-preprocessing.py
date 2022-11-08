@@ -108,6 +108,15 @@ def remove_punctuation(text):
 newsSummaryDataset['text'] = newsSummaryDataset['text'].apply(lambda x: remove_punctuation(x))
 newsSummaryDataset['summary'] = newsSummaryDataset['summary'].apply(lambda x: remove_punctuation(x))
 
+# remove punctuations and special characters such as @, #, $, %, ^, &, *, (, ), -, _, +, =, {, }, [, ], |, :, ;, <, >, ?, /, \, ~, `, ., ,, ', ", !, and so on.
+def remove_special_characters(text):
+    pattern = r'[^a-zA-z0-9\s]'
+    text = re.sub(pattern, '', text)
+    return text
+
+newsSummaryDataset['text'] = newsSummaryDataset['text'].apply(lambda x: remove_special_characters(x))
+newsSummaryDataset['summary'] = newsSummaryDataset['summary'].apply(lambda x: remove_special_characters(x))
+
 # 7. Remove stopwords
 from nltk.corpus import stopwords
 stop_words = set(stopwords.words('english'))
@@ -161,4 +170,7 @@ newsSummaryDataset['summary'] = newsSummaryDataset['summary'].apply(lambda x: re
 
 # Saving the cleaned data to a csv file
 newsSummaryDataset.to_csv('cleaned_news_summary.csv', index=False)
+
+# checking if the dataset contains a given character
+
 
