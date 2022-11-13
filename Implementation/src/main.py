@@ -242,3 +242,10 @@ joblib.dump(scores, f'{SAVE_DIR}/scores.pkl')
 
 
 # https://colab.research.google.com/drive/1vvbkH6ZBrYI1hxxIsdtk5_C35dai6UaV?usp=sharing
+
+# Hyperparameter list to be tuned 
+# 1. Learning rate ✅
+# 2. Weight Decay ✅
+# 3. Number of epochs ✅
+# 4. Batch size (This needs to be tested with later)
+# 5. Warmup ratio (This needs to be tested with aswell later)
