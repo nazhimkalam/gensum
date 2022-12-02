@@ -32,11 +32,16 @@ PER_DEVICE_EVAL_BATCH = 8
 PER_DEVICE_TRAIN_BATCH = 8
 NUM_TRIALS = 1
 SAVE_DIR = 'opt-test'
+SAVE_MODEL_DIR = 'models'
+SAVE_TOKENIZER_DIR = 'tokenizer'
 NAME_OF_MODEL = 'huggingoptunaface'
 MAX_LENGTH = 512
 
 # Loading dataset
+# BillSum dataset will contain 3 columns which are text, summary and title
+# I need to drop the 'title' column because it is not needed for the summarization task
 billsum = load_dataset("billsum", split="ca_test") 
+billsum = billsum.remove_columns(["title"])
 billsum = billsum.train_test_split(test_size=0.2)
 billsum = billsum.filter(lambda x: x['text'] is not None and x['summary'] is not None)
 billsum["train"][0]
@@ -174,13 +179,13 @@ trainer.train()
 print_custom('Evaluating the model using ROUGE metric and printing the results')
 trainer.evaluate()
 
-# Save the model
-print_custom('Saving the model')
-trainer.save_model()
+# Save the model in the models folder with the name of the model
+print_custom('Saving the model in the models folder with the name of the model')
+trainer.save_model(f'{SAVE_MODEL_DIR}/{NAME_OF_MODEL}')
 
-# Save the tokenizer
-print_custom('Saving the tokenizer')
-tokenizer.save_pretrained(SAVE_DIR)
+# Save the tokenizer in the models folder with the name of the model
+print_custom('Saving the tokenizer in the models folder with the name of the model')
+tokenizer.save_pretrained(f'{SAVE_TOKENIZER_DIR}/{NAME_OF_MODEL}')
 
 # Save the study
 print_custom('Saving the study')
@@ -239,6 +244,39 @@ print_custom('Saving the results')
 import joblib
 joblib.dump(scores, f'{SAVE_DIR}/scores.pkl')
 
+# Loading the model and tokenizer to make predictions
+print_custom('Loading the model and tokenizer to make predictions')
+from transformers import T5ForConditionalGeneration, T5Tokenizer
+loaded_model = T5ForConditionalGeneration.from_pretrained(f'{SAVE_MODEL_DIR}/{NAME_OF_MODEL}')
+loaded_tokenizer = T5Tokenizer.from_pretrained(f'{SAVE_TOKENIZER_DIR}/{NAME_OF_MODEL}')
+
+# Testing out the model with the sample text 
+print_custom('Testing out the model with the sample text')
+# sample text
+text = "Summarization creates a shorter version of a document or an article that captures all the important information. Along with translation, it is another example of a task that can be formulated as a sequence-to-sequence task."
+
+# make to sure to resolve the expected all tensors to be on the same device to be resolved when using the model on cpu 
+import torch
+print_custom('Resolving the expected all tensors to be on the same device to be resolved when using the model on cpu')
+device = torch.device("cpu")
+loaded_model.to(device)
+
+# Tokenize the text
+print_custom('Tokenizing the text')
+inputs = loaded_tokenizer(text, return_tensors="pt", padding="max_length", truncation=True, max_length=512)
+
+# Generate the summary
+print_custom('Generating the summary')
+summary_ids = loaded_model.generate(inputs["input_ids"].to(device), num_beams=4, max_length=150, early_stopping=True)
+
+# Decode the summary
+print_custom('Decoding the summary')
+summary = loaded_tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+
+# Print the summary
+print_custom('Printing the summary')
+print(summary)
+
 
 # https://colab.research.google.com/drive/1vvbkH6ZBrYI1hxxIsdtk5_C35dai6UaV?usp=sharing
 
@@ -246,5 +284,8 @@ joblib.dump(scores, f'{SAVE_DIR}/scores.pkl')
 # 1. Learning rate ✅
 # 2. Weight Decay ✅
 # 3. Number of epochs ✅
-# 4. Batch size (This needs to be tested with later)
-# 5. Warmup ratio (This needs to be tested with aswell later)
+# 4. Batch size (This needs to be tested with later) ✅
+# 5. Warmup ratio (This needs to be tested with aswell later) ✅
+
+
+# https://huggingface.co/docs/transformers/tasks/summarization
