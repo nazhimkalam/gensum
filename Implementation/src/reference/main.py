@@ -5,7 +5,8 @@
 # !pip install sentencepiece
 # !pip install datasets
 # !pip install optuna
-# !pip install rouge-metric
+# !pip install torch
+# !pip install rouge
 
 from pyexpat import features
 import datasets 
@@ -14,6 +15,7 @@ from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, TrainingArguments, Trainer, DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer
 import os.path
 from os import path
+from rouge import Rouge
 
 # Create function for printing 
 def print_custom(text):
@@ -38,8 +40,6 @@ NAME_OF_MODEL = 'huggingoptunaface'
 MAX_LENGTH = 512
 
 # Loading dataset
-# BillSum dataset will contain 3 columns which are text, summary and title
-# I need to drop the 'title' column because it is not needed for the summarization task
 billsum = load_dataset("billsum", split="ca_test") 
 billsum = billsum.remove_columns(["title"])
 billsum = billsum.train_test_split(test_size=0.2)
@@ -199,45 +199,21 @@ from rouge_metric import PyRouge
 print_custom('Evaluating the model using rouge metric')
 rouge = PyRouge(rouge_n=(1, 2), rouge_l=True, rouge_w=True, rouge_s=True, rouge_su=True)
 
-# sample hypothesis and reference
-# hypotheses = [
-#     'how are you\ni am fine',  # document 1: hypothesis
-#     'it is fine today\nwe won the football game',  # document 2: hypothesis
-# ]
-# references = [[
-#     'how do you do\nfine thanks',  # document 1: reference 1
-#     'how old are you\ni am three',  # document 1: reference 2
-# ], [
-#     'it is sunny today\nlet us go for a walk',  # document 2: reference 1
-#     'it is a terrible day\nwe lost the game',  # document 2: reference 2
-# ]]
+rouge_score = rouge.get_scores(model_out.predictions, references, avg=True)
+print(rouge_score)
 
-# Using the sample format to evaluate the model
-print_custom('Using the sample format to evaluate the model')
-hypotheses = []
-references = []
+# Using the rouge score values, calculate the value in percentage for ROUGE-1, ROUGE-2 and ROUGE-L
+print_custom('Using the rouge score values, calculate the value in percentage for ROUGE-1, ROUGE-2 and ROUGE-L')
+rouge_1 = rouge_score['rouge-1']['r'] * 100
+rouge_2 = rouge_score['rouge-2']['r'] * 100
+rouge_l = rouge_score['rouge-l']['r'] * 100
 
-# Looping through the test dataset
-for i in range(len(tokenized_billsum["test"])):
-    # Getting the input and target
-    input = tokenized_billsum["test"][i]["input_ids"]
-    target = tokenized_billsum["test"][i]["labels"]
+# Print the rouge score values
+print_custom('Printing the rouge score values')
+print(f'ROUGE-1: {rouge_1}')
+print(f'ROUGE-2: {rouge_2}')
+print(f'ROUGE-L: {rouge_l}')
 
-    # Decoding the input and target
-    input = tokenizer.decode(input, skip_special_tokens=True)
-    target = tokenizer.decode(target, skip_special_tokens=True)
-
-    # Appending the input and target to the lists
-    hypotheses.append(input)
-    references.append([target])
-
-# Evaluating the model
-print_custom('Evaluating the model')
-scores = rouge.evaluate(hypotheses, references)
-
-# print the results
-print_custom('Printing the results')
-print(scores)
 
 # Save the results
 print_custom('Saving the results')
