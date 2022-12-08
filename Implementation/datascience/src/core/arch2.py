@@ -20,6 +20,7 @@ import random
 import numpy as np
 import pandas as pd
 import datasets
+from datasets import load_dataset, load_metric
 import optuna
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer
 
@@ -192,51 +193,56 @@ trainer.train()
 # Evaluating the model
 trainer.evaluate()
 
-# Model Evaluation using ROUGE metrics
-print_custom('Making use of rouge metric to evaluate the model')
+# From the trainer, get the model 
+trainedModel = trainer.model
+
+# Model Evaluation using Rouge metrics and test data and the trainedModel for testing the model
+print_custom('Model Evaluation using Rouge metrics and test data and the trained model for testing the model')
 from rouge_metric import PyRouge
 
-print_custom('Evaluating the model using rouge metric')
+# Create the rouge metric
 rouge = PyRouge(rouge_n=(1, 2), rouge_l=True, rouge_w=True, rouge_s=True, rouge_su=True)
 
-print_custom('Using the sample format to evaluate the model')
-hypotheses = []
+# use the datasetDict['test'] and tokenize it using the tokenizer and perform the prediction using the trained model and store the predictions in a list and then get the reference summaries from the datasetDict['test'] and store it in a list and then use the rouge metric to get the rouge scores
+predictions = []
 references = []
 
-# Looping through the test dataset
-for i in range(len(tokenized_dataset["test"])):
-    # Getting the input and target
-    input = tokenized_dataset["test"][i]["input_ids"]
-    target = tokenized_dataset["test"][i]["labels"]
+# sample format datasetDict['test'][0] 
+# {'text': "Tropical storm life formed in the South China Sea Thursday afternoon and was forecast to bring heavy rain to parts of Taiwan starting Friday, said China's central meteorological station.",'summary': 'Tropical storm life forms in south china sea.'}
 
-    # Decoding the input and target
-    input = tokenizer.decode(input, skip_special_tokens=True)
-    target = tokenizer.decode(target, skip_special_tokens=True)
+# Iterate through the datasetDict['test'] and tokenize the text and summary and then perform the prediction using the trained model and store the predictions in a list and then get the reference summaries from the datasetDict['test'] and store it in a list
+from tqdm import tqdm
+device = torch.device("cuda")
 
-    # Appending the input and target to the lists
-    hypotheses.append(input)
-    references.append([target])
+for i in range(len(datasetDict['test'])):
+    # Tokenize the text and summary
+    tokenizedText = tokenizer(datasetDict['test'][i]['text'], padding='max_length', truncation=True, max_length=MAX_LENGTH, return_tensors="pt")
+    tokenizedSummary = tokenizer(datasetDict['test'][i]['summary'], padding='max_length', truncation=True, max_length=MAX_LENGTH, return_tensors="pt")
+    
+    # Perform the prediction using the trained model
+    prediction = trainedModel.generate(input_ids=tokenizedText['input_ids'].to(device), attention_mask=tokenizedText['attention_mask'].to(device), num_beams=4, max_length=MAX_LENGTH, early_stopping=True)
+    
+    # Decode the prediction and store it in the predictions list
+    decodedPrediction = tokenizer.decode(prediction[0], skip_special_tokens=True)
+    predictions.append(decodedPrediction)
+    
+    # Store the reference summary in the references list
+    references.append(datasetDict['test'][i]['summary'])
 
-# Evaluating the model
-print_custom('Evaluating the model')
-scores = rouge.evaluate(hypotheses, references)
+# Get the rouge scores
+scores = rouge.convert_and_evaluate(predictions, references)
 
-# print the results
-print_custom('Printing the results')
+# Print the rouge scores
+print_custom('Printing the rouge scores')
 print(scores)
 
-# Using the rouge score values, calculate the value in percentage for ROUGE-1, ROUGE-2 and ROUGE-L
-print_custom('Using the rouge score values, calculate the value in percentage for ROUGE-1, ROUGE-2 and ROUGE-L')
-rouge_1 = scores['rouge-1']['r'] * 100
-rouge_2 = scores['rouge-2']['r'] * 100
-rouge_l = scores['rouge-l']['r'] * 100
 
-# Print the rouge score values
-print_custom('Printing the rouge score values')
-print(f'ROUGE-1: {round(rouge_1, 1)}')
-print(f'ROUGE-2: {round(rouge_2, 1)}')
-print(f'ROUGE-L: {round(rouge_l, 1)}')
 
+
+
+    
+
+# Ending of Model Evaluation
 # Save the model in the models folder with the name of the model
 print_custom('Saving the model in the models folder with the name of the model')
 trainer.save_model(f'{SAVE_MODEL_DIR}/{MODEL_NAME}')

@@ -1,0 +1,109 @@
+# use the tokenized test data, tokenizer and the trained model to generate the predictions and perform the evaluation
+predictions = trainer.predict(tokenized_dataset["test"]).predictions
+predictions = [tokenizer.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=False) for g in predictions]
+
+# Get the references
+references = [tokenizer.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=False) for g in tokenized_dataset["test"]["summary"]]
+# Get the scores
+scores = rouge.convert_and_evaluate(predictions, references)
+
+# Print the scores
+print_custom('Printing the scores')
+print(scores)
+
+
+
+
+
+
+
+
+
+
+
+
+# # Model Evaluation using ROUGE metrics
+# print_custom('Making use of rouge metric to evaluate the model')
+# from rouge_metric import PyRouge
+
+# print_custom('Evaluating the model using rouge metric')
+# rouge = PyRouge(rouge_n=(1, 2), rouge_l=True, rouge_w=True, rouge_s=True, rouge_su=True)
+
+# print_custom('Using the sample format to evaluate the model')
+# hypotheses = []
+# references = []
+
+# # Looping through the test dataset
+# for i in range(len(tokenized_dataset["test"])):
+#     # Getting the input and target
+#     input = tokenized_dataset["test"][i]["input_ids"]
+#     target = tokenized_dataset["test"][i]["labels"]
+
+#     # Decoding the input and target
+#     input = tokenizer.decode(input, skip_special_tokens=True)
+#     target = tokenizer.decode(target, skip_special_tokens=True)
+
+#     # Appending the input and target to the lists
+#     hypotheses.append(input)
+#     references.append([target])
+
+# # Evaluating the model
+# print_custom('Evaluating the model')
+# scores = rouge.evaluate(hypotheses, references)
+
+# # print the results
+# print_custom('Printing the results')
+# print(scores)
+
+# # Using the rouge score values, calculate the value in percentage for ROUGE-1, ROUGE-2 and ROUGE-L
+# print_custom('Using the rouge score values, calculate the value in percentage for ROUGE-1, ROUGE-2 and ROUGE-L')
+# rouge_1 = scores['rouge-1']['r'] * 100
+# rouge_2 = scores['rouge-2']['r'] * 100
+# rouge_l = scores['rouge-l']['r'] * 100
+
+# # Print the rouge score values
+# print_custom('Printing the rouge score values')
+# print(f'ROUGE-1: {round(rouge_1, 1)}')
+# print(f'ROUGE-2: {round(rouge_2, 1)}')
+# print(f'ROUGE-L: {round(rouge_l, 1)}')
+
+
+
+
+
+======> 
+
+from tqdm import tqdm
+device = torch.device("cpu")
+
+def generate_batch_sized_chunks(list_of_elements, batch_size):
+    """split the dataset into smaller batches that we can process simultaneously
+    Yield successive batch-sized chunks from list_of_elements."""
+    for i in range(0, len(list_of_elements), batch_size):
+        yield list_of_elements[i : i + batch_size]
+
+def calculate_metric_on_test_dataset(testDataset, metric, model, tokenizer, batch_size=16, device=device, column_text="text", column_summary="summary"):
+    text_batches = list(generate_batch_sized_chunks(testDataset[column_text], batch_size))
+    target_batch = list(generate_batch_sized_chunks(testDataset[column_summary], batch_size))
+
+    for text_batches, target_batch in tqdm(zip(text_batches, target_batch), total=len(text_batches)):
+        inputs = tokenizer(text_batches, max_length=1024,  truncation=True, padding="max_length", return_tensors="pt")
+        summaries = model.generate(input_ids=inputs["input_ids"].to(device), attention_mask=inputs["attention_mask"].to(device), length_penalty=0.8, num_beams=8, max_length=128)
+
+    ''' parameter for length penalty ensures that the model does not generate sequences that are too long. '''
+        
+    # Finally, we decode the generated texts, 
+    # replace the  token, and add the decoded texts with the references to the metric.
+    decoded_summaries = [tokenizer.decode(s, skip_special_tokens=True, clean_up_tokenization_spaces=True) for s in summaries]      
+    decoded_summaries = [d.replace("", " ") for d in decoded_summaries]
+    metric.add_batch(predictions=decoded_summaries, references=target_batch)
+
+    #  Finally compute and return the ROUGE scores.
+    score = metric.compute()
+    return score
+
+rouge_names = ["rouge1", "rouge2", "rougeL", "rougeLsum"]
+rouge_metric = load_metric('rouge')
+score = calculate_metric_on_test_dataset(datasetDict['test'], rouge_metric, model, tokenizer, column_text = 'text', column_summary='summary', batch_size=8 )
+
+=========
