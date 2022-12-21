@@ -39,7 +39,7 @@ NUM_TRIALS = 1
 WARMUP_RATIO_MIN = 0.0
 WARMUP_RATIO_MAX = 0.1
 SAVE_DIR = 'opt-test'
-MODEL_NAME = 'facebook/bart-large-xsum'
+MODEL_NAME = 'google/pegasus-x-base'
 MAX_INPUT = 512
 MAX_TARGET = 128
 
@@ -53,6 +53,23 @@ data
 
 # Loading tokenizer
 tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_NAME)
+
+#load model
+model = transformers.AutoModelForSeq2SeqLM.from_pretrained(MODEL_NAME)
+
+# Using an optimizers and schedulers from the transformers library to fine-tune the model 
+# We are using the AdamW optimizer and the get_linear_schedule_with_warmup scheduler
+optimizer = transformers.AdamW(model.parameters(), lr=5e-5, correct_bias=False)
+scheduler = transformers.get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=1000)
+
+# set the model to use the optimizer
+model.optimizer = optimizer
+
+# set the model to use the scheduler
+model.scheduler = scheduler
+
+#data_collator to create batches. It preprocess data with the given tokenizer
+data_collator = transformers.DataCollatorForSeq2Seq(tokenizer, model=model)
 
 # Preprocessing the data
 prefix = "summarize: "
@@ -98,14 +115,8 @@ tokenize_data['test'] = test_sample
 
 tokenize_data
 
-#load model
-model = transformers.AutoModelForSeq2SeqLM.from_pretrained(MODEL_NAME)
-
 # We are using batch_size to handle with the GPU limitation but if GPU size is not a limitation please use the recommend batch size from the hyperparameters
 batch_size = 1
-
-#data_collator to create batches. It preprocess data with the given tokenizer
-data_collator = transformers.DataCollatorForSeq2Seq(tokenizer, model=model)
 
 #####################
 # metrics

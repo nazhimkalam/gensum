@@ -1,27 +1,23 @@
-# using sshleifer/distilbart-cnn-12-6
-
+# Connecting to Google Colab
 from google.colab import drive
 drive.mount('/content/gdrive')
 
-dataset_path = 'gdrive/My Drive/fyp/cnn_dailymail/'
-
-# Installing the necessary libraries
-# !pip install transformers
-# !pip install sentencepiece
-# !pip install datasets
-# !pip install optuna
-# !pip install torch
-# !pip install rouge_metric
+# Installing the required libraries
+# !pip install sentencepiece optuna
+# !pip install torch huggingface_hub
+# !pip install transformers datasets 
+# !pip install rouge.score nltk py7zr
 
 # Importing the necessary libraries
-import os
 import torch
-import random
 import numpy as np
 import pandas as pd
 import datasets
+import nltk
 import optuna
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer
+import transformers
+
+nltk.download('punkt')
 
 # Create function for printing 
 def print_custom(text):
@@ -30,105 +26,150 @@ def print_custom(text):
     print('-'*100)
 
 # Specify our parameter and project variables
+# These parameter range can be changed with respect to amount of processing power available (GPU)
 LR_MIN = 4e-5
 LR_CEIL = 0.01
 WD_MIN = 4e-5
 WD_CEIL = 0.01
 MIN_EPOCHS = 8
 MAX_EPOCHS = 15
-PER_DEVICE_EVAL_BATCH = 8
-PER_DEVICE_TRAIN_BATCH = 8
 MIN_BATCH_SIZE = 4
-MAX_BATCH_SIZE = 8
+MAX_BATCH_SIZE = 6
 NUM_TRIALS = 1
+WARMUP_RATIO_MIN = 0.0
+WARMUP_RATIO_MAX = 0.1
 SAVE_DIR = 'opt-test'
-SAVE_MODEL_DIR = 'cnn_dailymail-models'
-SAVE_TOKENIZER_DIR = 'cnn_dailymail-tokenizer'
-MODEL_NAME = 'sshleifer/distilbart-cnn-12-6'
-MAX_LENGTH = 512
+MODEL_NAME = 'google/pegasus-x-base'
+MAX_INPUT = 512
+MAX_TARGET = 128
 
-# Load the dataset
-print_custom('Loading the dataset')
-dataset = pd.read_csv(dataset_path + 'cleaned_cnn_dailymail.csv', encoding='latin-1')
+# Selecting the first 1000 rows just to see if the GPU issue doesnt recreate as the dataset is large
+dataset_path = 'gdrive/My Drive/fyp/xsum/'
+data = pd.read_csv(dataset_path + 'xsum.csv', encoding='latin-1')
+data = data[0:1000]
 
-# Selecting the first 500 rows just to see if the GPU issue doesnt recreate as the dataset is large
-dataset = dataset[0:500]
+metric = datasets.load_metric('rouge')
+data
 
-# Dataset shape
-dataset.shape
+# Loading tokenizer
+tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_NAME)
 
-#  Perform a train test split of 80:20 ratio on the dataset
-print_custom('Performing train-test split on the dataset')
-train_dataset = dataset[:int(len(dataset)*0.8)]
-test_dataset = dataset[int(len(dataset)*0.8):]
+#load model
+model = transformers.AutoModelForSeq2SeqLM.from_pretrained(MODEL_NAME)
 
-# Creating a dataset Dict for the train and test dataset into a single dictionary
-print_custom("Creating a dataset dict for the train and test split data")
-datasetDict = datasets.DatasetDict({ 'train': datasets.Dataset.from_pandas(train_dataset), 'test': datasets.Dataset.from_pandas(test_dataset) })
+# Using an optimizers and schedulers from the transformers library to fine-tune the model 
+# We are using the AdamW optimizer and the get_linear_schedule_with_warmup scheduler
+optimizer = transformers.AdamW(model.parameters(), lr=5e-5, correct_bias=False)
+scheduler = transformers.get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=1000)
 
-# Loading the Tokenizer and Model
-print_custom('Loading the Tokenizer and Model')
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_NAME)
+# set the model to use the optimizer
+model.optimizer = optimizer
 
-# Preprocessing the dataset
+# set the model to use the scheduler
+model.scheduler = scheduler
+
+#data_collator to create batches. It preprocess data with the given tokenizer
+data_collator = transformers.DataCollatorForSeq2Seq(tokenizer, model=model)
+
+# Preprocessing the data
 prefix = "summarize: "
-print_custom('Creating the tokenization function')
-def preprocess_function(examples):
-    inputs = [prefix + doc for doc in examples["text"]]
-    model_inputs = tokenizer(inputs, max_length=MAX_LENGTH, truncation=True)
-    # Setup the tokenizer for targets
+def preprocess_data(data_to_process):
+    #get the document text
+    if 't5' in MODEL_NAME: 
+        inputs = [prefix + doc for doc in data_to_process["document"]]
+    else:
+        inputs = [document for document in data_to_process['document']]
+
+    #tokenize text
+    model_inputs = tokenizer(inputs,  max_length=MAX_INPUT, padding='max_length', truncation=True)
+
+    #tokenize labels
     with tokenizer.as_target_tokenizer():
-        labels = tokenizer(examples["summary"], max_length=MAX_LENGTH, truncation=True)
-    model_inputs["labels"] = labels["input_ids"]
+        targets = tokenizer(data_to_process['summary'], max_length=MAX_TARGET, padding='max_length', truncation=True)
+        
+    model_inputs['labels'] = targets['input_ids']
     return model_inputs
 
+#  Perform a train test split of 80:20 ratio on the dataset
+train_dataset = data[:int(len(data)*0.7)]
+test_dataset = data[int(len(data)*0.7):int(len(data)*0.85)]
+validation_dataset = data[int(len(data)*0.85):]
 
-# Tokenizing the dataset
-tokenized_dataset = datasetDict.map(preprocess_function, batched=True)
+# Creating the dataset dictionary
+data = datasets.DatasetDict({ 'train': datasets.Dataset.from_pandas(train_dataset), 
+                              'test': datasets.Dataset.from_pandas(test_dataset),
+                              'validation': datasets.Dataset.from_pandas(train_dataset)})
 
-# Creating a data Collector
-print_custom('Creating a data Collector')
-data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
+# Preprocess the data
+tokenize_data = data.map(preprocess_data, batched = True, remove_columns=['document', 'summary'])
 
-# Viewing the tokenized dataset structure
-print_custom('Viewing the tokenized dataset structure')
-print(tokenized_dataset)
+#sample the data
+train_sample = tokenize_data['train'].shuffle(seed=123).select(range(500))
+validation_sample = tokenize_data['validation'].shuffle(seed=123).select(range(250))
+test_sample = tokenize_data['test'].shuffle(seed=123).select(range(100))
 
-# Creating the optuna objective function for pszemraj/long-t5-tglobal-base-16384-book-summary model for summarization 
-print_custom('Creating the optuna objective function for pszemraj/long-t5-tglobal-base-16384-book-summary model for summarization')
+# Update the tokenize_data dictionary
+tokenize_data['train'] = train_sample
+tokenize_data['validation'] = validation_sample
+tokenize_data['test'] = test_sample
+
+tokenize_data
+
+# We are using batch_size to handle with the GPU limitation but if GPU size is not a limitation please use the recommend batch size from the hyperparameters
+batch_size = 1
+
+#####################
+# metrics
+# compute rouge for evaluation 
+#####################
+
+def compute_rouge(pred):
+    predictions, labels = pred
+    #decode the predictions
+    decode_predictions = tokenizer.batch_decode(predictions, skip_special_tokens=True)
+    #decode labels
+    decode_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
+
+    #compute results
+    res = metric.compute(predictions=decode_predictions, references=decode_labels, use_stemmer=True)
+    res = {key: value.mid.fmeasure * 100 for key, value in res.items()}
+
+    #compute the average of the rouge scores
+    pred_lens = [np.count_nonzero(pred != tokenizer.pad_token_id) for pred in predictions]
+    res['gen_len'] = np.mean(pred_lens)
+
+    return {k: round(v, 4) for k, v in res.items()}
+
+# Performing hyperparameter training
+print_custom('Performing hyperparameter training....')
 def objective(trial: optuna.Trial):
-    # Specify the model name and folder
-    model_path = f'{SAVE_MODEL_DIR}/{MODEL_NAME}'
-
     # Specify the training arguments and hyperparameter tune every arguments which are possible to tune
-    training_args = Seq2SeqTrainingArguments(
-        output_dir=SAVE_DIR,
-        save_strategy="epoch",
-        evaluation_strategy="epoch",
-        learning_rate=trial.suggest_float("learning_rate", LR_MIN, LR_CEIL, log=True),
-        weight_decay=trial.suggest_float("weight_decay", WD_MIN, WD_CEIL, log=True),
-        num_train_epochs=trial.suggest_int("num_train_epochs", MIN_EPOCHS, MAX_EPOCHS),
-        warmup_ratio=trial.suggest_float("warmup_ratio", 0.0, 1.0),
-        per_device_train_batch_size=trial.suggest_int("per_device_train_batch_size", MIN_BATCH_SIZE, MAX_BATCH_SIZE),
-        per_device_eval_batch_size=trial.suggest_int("per_device_eval_batch_size", MIN_BATCH_SIZE, MAX_BATCH_SIZE),
+    training_args = transformers.Seq2SeqTrainingArguments(
+        report_to="none",
         save_total_limit=1,
-        load_best_model_at_end=True,
+        output_dir=SAVE_DIR,
+        run_name=MODEL_NAME,
+        save_strategy="epoch",
         greater_is_better=True,
         predict_with_generate=True,
-        run_name=MODEL_NAME,
-        report_to="none",
+        load_best_model_at_end=True,
+        evaluation_strategy="epoch",
+        weight_decay=trial.suggest_float("weight_decay", WD_MIN, WD_CEIL, log=True),
+        learning_rate=trial.suggest_float("learning_rate", LR_MIN, LR_CEIL, log=True),
+        num_train_epochs=trial.suggest_int("num_train_epochs", MIN_EPOCHS, MAX_EPOCHS),
+        warmup_ratio=trial.suggest_float("warmup_ratio", WARMUP_RATIO_MIN, WARMUP_RATIO_MAX),
+        per_device_eval_batch_size=trial.suggest_int("per_device_eval_batch_size", MIN_BATCH_SIZE, MAX_BATCH_SIZE),
+        per_device_train_batch_size=trial.suggest_int("per_device_train_batch_size", MIN_BATCH_SIZE, MAX_BATCH_SIZE),
     )
 
-
     # Create the trainer
-    trainer = Seq2SeqTrainer(
+    trainer = transformers.Seq2SeqTrainer(
         model=model,
         args=training_args,
-        data_collator=data_collator,
-        train_dataset=tokenized_dataset["train"],
-        eval_dataset=tokenized_dataset["test"],
         tokenizer=tokenizer,
+        data_collator=data_collator,
+        eval_dataset=tokenize_data["test"],
+        train_dataset=tokenize_data["train"],
     )
 
     # Train the model
@@ -152,148 +193,45 @@ torch.cuda.empty_cache()
 print_custom('Optimizing the objective function')
 study.optimize(objective, n_trials=NUM_TRIALS)
 
-# Print the best parameters
-print_custom('Printing the best parameters')
-print(study.best_params)
+# Hyperparameter results
+learning_rate = study.best_params['learning_rate']
+weight_decay = study.best_params['weight_decay']
+num_train_epochs = study.best_params['num_train_epochs']
+warmup_ratio = study.best_params['warmup_ratio']
+per_device_train_batch_size = study.best_params['per_device_train_batch_size']
+per_device_eval_batch_size = study.best_params['per_device_eval_batch_size']
 
-# Using the best parameters to train the model
-print_custom('Using the best parameters to train the model')
-training_args = Seq2SeqTrainingArguments(
-    output_dir=SAVE_DIR,
-    save_strategy="epoch",
-    evaluation_strategy="epoch",
-    learning_rate=study.best_params["learning_rate"],
-    weight_decay=study.best_params["weight_decay"],
-    per_device_train_batch_size=study.best_params["per_device_train_batch_size"],
-    per_device_eval_batch_size=study.best_params["per_device_eval_batch_size"],
-    num_train_epochs=study.best_params["num_train_epochs"],
-    warmup_ratio=study.best_params["warmup_ratio"],
-    save_total_limit=1,
-    load_best_model_at_end=True,
-    greater_is_better=True,
+args = transformers.Seq2SeqTrainingArguments(
+    'generalization-summary',
+    evaluation_strategy='epoch',
+    learning_rate=learning_rate,
+    per_device_train_batch_size=1, # this is due to GPU limitation else per_device_train_batch_size should be used 
+    per_device_eval_batch_size= 1, # this is due to GPU limitation else per_device_eval_batch_size should be used
+    gradient_accumulation_steps=2,
+    weight_decay=weight_decay,
+    save_total_limit=2,
+    warmup_ratio=warmup_ratio,
+    num_train_epochs=num_train_epochs,
     predict_with_generate=True,
-    run_name=MODEL_NAME,
-    report_to="none",
-)
+    eval_accumulation_steps=1,
+    fp16=True
+  )
+#only CUDA available -> fp16=True
 
-# Create the trainer
-trainer = Seq2SeqTrainer(
-    model=model,
-    args=training_args,
+# Create the trainer with an intervals where after each epoch the system empties the GPU memory and re-loads the model
+trainer = transformers.Seq2SeqTrainer(
+    model, 
+    args,
+    train_dataset=tokenize_data['train'],
+    eval_dataset=tokenize_data['validation'],
     data_collator=data_collator,
-    train_dataset=tokenized_dataset["train"],
-    eval_dataset=tokenized_dataset["test"],
     tokenizer=tokenizer,
+    compute_metrics=compute_rouge
 )
-
-# Train the model
-trainer.train()
-
-# Evaluating the model
-trainer.evaluate()
-
-# Model Evaluation using ROUGE metrics
-print_custom('Making use of rouge metric to evaluate the model')
-from rouge_metric import PyRouge
-
-print_custom('Evaluating the model using rouge metric')
-rouge = PyRouge(rouge_n=(1, 2), rouge_l=True, rouge_w=True, rouge_s=True, rouge_su=True)
-
-print_custom('Using the sample format to evaluate the model')
-hypotheses = []
-references = []
-
-# Looping through the test dataset
-for i in range(len(tokenized_dataset["test"])):
-    # Getting the input and target
-    input = tokenized_dataset["test"][i]["input_ids"]
-    target = tokenized_dataset["test"][i]["labels"]
-
-    # Decoding the input and target
-    input = tokenizer.decode(input, skip_special_tokens=True)
-    target = tokenizer.decode(target, skip_special_tokens=True)
-
-    # Appending the input and target to the lists
-    hypotheses.append(input)
-    references.append([target])
-
-# Evaluating the model
-print_custom('Evaluating the model')
-scores = rouge.evaluate(hypotheses, references)
-
-# print the results
-print_custom('Printing the results')
-print(scores)
-
-# Using the rouge score values, calculate the value in percentage for ROUGE-1, ROUGE-2 and ROUGE-L
-print_custom('Using the rouge score values, calculate the value in percentage for ROUGE-1, ROUGE-2 and ROUGE-L')
-rouge_1 = scores['rouge-1']['r'] * 100
-rouge_2 = scores['rouge-2']['r'] * 100
-rouge_l = scores['rouge-l']['r'] * 100
-
-# Print the rouge score values
-print_custom('Printing the rouge score values')
-print(f'ROUGE-1: {round(rouge_1, 1)}')
-print(f'ROUGE-2: {round(rouge_2, 1)}')
-print(f'ROUGE-L: {round(rouge_l, 1)}')
-
-# Save the model in the models folder with the name of the model
-print_custom('Saving the model in the models folder with the name of the model')
-trainer.save_model(f'{SAVE_MODEL_DIR}/{MODEL_NAME}')
-
-# Download the model 
-print_custom('Downloading the model')
-from google.colab import files
-files.download(f'{SAVE_MODEL_DIR}/{MODEL_NAME}')
-
-# Save the tokenizer in the models folder with the name of the model
-print_custom('Saving the tokenizer in the models folder with the name of the model')
-tokenizer.save_pretrained(f'{SAVE_TOKENIZER_DIR}/{MODEL_NAME}')
-
-# Download the tokenizer
-print_custom('Downloading the tokenizer')
-from google.colab import files
-files.download(f'{SAVE_TOKENIZER_DIR}/{MODEL_NAME}')
-
-# Save the study
-print_custom('Saving the study')
-import joblib
-joblib.dump(study, f'{SAVE_DIR}/study.pkl')
-
-# Download the study
-print_custom('Downloading the study')
-from google.colab import files
-files.download(f'{SAVE_DIR}/study.pkl')
-
-# Loading the model and tokenizer to make predictions
-print_custom('Loading the model and tokenizer to make predictions')
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-loaded_model = AutoModelForSeq2SeqLM.from_pretrained(f'{SAVE_MODEL_DIR}/{MODEL_NAME}')
-loaded_tokenizer = AutoTokenizer.from_pretrained(f'{SAVE_TOKENIZER_DIR}/{MODEL_NAME}')
-
-# Testing out the model with the sample text 
-print_custom('Testing out the model with the sample text')
-# sample text
-text = "I am a creative Full-Stack Web Developer who has experience in technologies such as Data Science & ML and Cloud Computing. I am a highly coordinated, committed and diplomatic software engineer with a defined capacity to operate and execute any specific role on schedule.I am able to communicate with a vast variety of individuals easily, with outstanding organizational skills. I see that I will bring my skills and expertise into practice in a full-time role in the industry, which will directly support the activities of the businesses I am involved in.I have the potential to build original conceptions and insights and solve a great many problems, guided by my intuitive and optimistic approach to problem solving. In algorithms as in business scenarios, I am able to apply my problems solving skills.Furthermore, I can easily and effectively understand the intensifying principles and help others to develop with great self encouragement. Therefore, I guess I am able to handle a lot of teams."
-
-# make to sure to resolve the expected all tensors to be on the same device to be resolved when using the model on cpu 
+     
+     
+# Clearing the cuda memory
 import torch
-print_custom('Resolving the expected all tensors to be on the same device to be resolved when using the model on cpu')
-device = torch.device("cpu")
-loaded_model.to(device)
+torch.cuda.empty_cache()
 
-# Tokenize the text
-print_custom('Tokenizing the text')
-inputs = loaded_tokenizer(text, return_tensors="pt", padding="max_length", truncation=True, max_length=512)
-
-# Generate the summary
-print_custom('Generating the summary')
-summary_ids = loaded_model.generate(inputs["input_ids"].to(device), num_beams=4, max_length=150, early_stopping=True)
-
-# Decode the summary
-print_custom('Decoding the summary')
-summary = loaded_tokenizer.decode(summary_ids[0], skip_special_tokens=True)
-
-# Print the summary
-print_custom('Printing the summary')
-print(summary)
+trainer.train()
