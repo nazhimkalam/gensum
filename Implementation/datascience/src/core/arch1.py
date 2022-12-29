@@ -290,3 +290,5 @@ model.save_pretrained(drive_path_to_save_model)
 # Save the tokenizer
 drive_path_to_save_tokenizer = 'gdrive/My Drive/fyp/Models/' + MODEL_NAME + '_tokenizer'
 tokenizer.save_pretrained(drive_path_to_save_tokenizer)
+
+
