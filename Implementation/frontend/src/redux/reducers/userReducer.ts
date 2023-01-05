@@ -3,8 +3,11 @@ import { createSlice } from "@reduxjs/toolkit";
 
 const userState: User = {
   id: undefined,
-  username: undefined,
-  // userRole: undefined
+  displayName: undefined,
+  email: undefined,
+  domainName: undefined,
+  domainType: undefined,
+  isAccessible: undefined,
 };
 
 export const userSlice = createSlice({

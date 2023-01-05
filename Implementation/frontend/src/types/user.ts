@@ -1,6 +1,11 @@
+import { DomainType } from "../enum/DomainType";
+
 export type User = {
-  id: number | undefined;
-  username: string | undefined;
-//   userRole: UserType | undefined;
+  id: string | undefined;
+  displayName: string | undefined;
+  email: string | undefined;
+  domainName: string | undefined;
+  domainType: DomainType | undefined;
+  isAccessible: boolean | undefined;
 };
 
