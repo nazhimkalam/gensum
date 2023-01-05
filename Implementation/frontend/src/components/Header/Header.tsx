@@ -10,7 +10,12 @@ const Header = () => {
     <Container>
       <section className="section-one">
         <ImageContainer onClick={navigateToHome}>
-          <Image src="logo192.png" alt="logo" title="Gatot" preview={false} />
+          <Image
+            src="logos/logo1.PNG"
+            alt="logo"
+            title="Antagonism"
+            preview={false}
+          />
           <Title level={3}>Gatot</Title>
         </ImageContainer>
       </section>
@@ -28,42 +33,43 @@ const Container = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-    padding: 20px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
 
   .section-two {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    
-    button {
-        padding: 10px 20px;
-        border: 1px solid black;
-        border-radius: 5px;
-        cursor: pointer;
-        background-color: white;
-        color: black;
-        font-weight: bold;
-        transition: all 0.2s ease-in-out;
-        &:hover {
-            background-color: black;
-            color: white;
-        }
-        &:first-child {
-            margin-right: 10px;
-            background-color: black;
-            color: white;
 
-            &:hover {
-                background-color: white;
-                color: black;
-            }
+    button {
+      padding: 10px 20px;
+      border: 1px solid black;
+      border-radius: 5px;
+      cursor: pointer;
+      background-color: white;
+      color: black;
+      font-weight: bold;
+      transition: all 0.2s ease-in-out;
+      &:hover {
+        background-color: black;
+        color: white;
+      }
+      &:first-child {
+        margin-right: 10px;
+        background-color: black;
+        color: white;
+
+        &:hover {
+          background-color: white;
+          color: black;
         }
-        &:last-child {
-            margin-left: 10px;
-            width: 100px;
-        }
+      }
+      &:last-child {
+        margin-left: 10px;
+        width: 100px;
+      }
     }
-}
+  }
 `;
 
 const ImageContainer = styled.div`
