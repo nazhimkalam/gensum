@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import About from "../../components/About/About";
 import Footer from "../../components/Footer/Footer";
 import Header from "../../components/Header/Header";
 
@@ -9,7 +10,7 @@ const LandingPage = () => {
       <Header />
 
       {/* title and about (given that it also gives the sentiment) */}
-      <h1>Title</h1>
+      <About />
 
       {/* how it works for both general users and domain specific users */}
       <h2>How it works</h2>
