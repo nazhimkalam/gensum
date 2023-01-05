@@ -9,12 +9,14 @@ const LandingPage = () => {
       <Header />
 
       {/* title and about (given that it also gives the sentiment) */}
+      <h1>Title</h1>
 
       {/* how it works for both general users and domain specific users */}
+      <h2>How it works</h2>
 
       {/* the summarizer tool to be used */}
+      <h2>Summarizer</h2>
 
-      {/* footer */}
       <Footer />
     </StyledContainer>
   );
