@@ -3,6 +3,7 @@ import About from "../../components/About/About";
 import Footer from "../../components/Footer/Footer";
 import Header from "../../components/Header/Header";
 import HowItWorks from "../../components/HowItWorks/HowItWorks";
+import Summarizer from "../../components/Summarizer/Summarizer";
 
 const LandingPage = () => {
   return (
@@ -16,7 +17,7 @@ const LandingPage = () => {
       <HowItWorks />
 
       {/* the summarizer tool to be used */}
-      <h2>Summarizer</h2>
+      <Summarizer />
 
       <Footer />
     </StyledContainer>
