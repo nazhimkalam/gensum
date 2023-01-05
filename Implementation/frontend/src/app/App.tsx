@@ -3,15 +3,16 @@ import LoginPage from "../pages/login/LoginPage"
 import LandingPage from "../pages/landing/LandingPage"
 import RecordsPage from "../pages/records/RecordsPage"
 import RegisterPage from "../pages/register/RegisterPage"
+import { routePaths } from './routes'
 
 const App = () => {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<LandingPage/>}/>
-        <Route path="/login" element={<LoginPage/>}/>
-        <Route path="/register" element={<RegisterPage/>}/>
-        <Route path="/records" element={<RecordsPage/>}/>
+        <Route path={routePaths.home} element={<LandingPage/>}/>
+        <Route path={routePaths.login} element={<LoginPage/>}/>
+        <Route path={routePaths.register} element={<RegisterPage/>}/>
+        <Route path={routePaths.records} element={<RecordsPage/>}/>
       </Routes>
     </Router>
   )
