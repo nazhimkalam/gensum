@@ -1,50 +1,48 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 const Footer = () => {
-    return (
-        <FooterStyled>
-            <p>@nazhimkalam</p>
-            <p>
-                <a href="/">Terms of Service</a> | <a href="/">Privacy Policy</a>
-            </p>
+  return (
+    <FooterStyled>
+      <p>@nazhimkalam</p>
+      <p>
+        <a href="/">Terms of Service</a> | <a href="/">Privacy Policy</a>
+      </p>
 
-            <p>
-                <a href="/">Facebook</a> | <a href="/">Twitter</a> |{' '}
-                <a href="/">Instagram</a>
-            </p>
-        </FooterStyled>
-    )
-}
+      <p>
+        <a href="/">Facebook</a> | <a href="/">Twitter</a>
+      </p>
+    </FooterStyled>
+  );
+};
 
-export default Footer
+export default Footer;
 
 const FooterStyled = styled.div`
-    background-color: #000;
+  background-color: #000;
+  color: #fff;
+  padding: 1rem;
+  text-align: center;
+
+  p {
+    margin: 0.5rem 0;
+  }
+
+  a {
     color: #fff;
-    padding: 1rem;
-    text-align: center;
+    text-decoration: none;
+  }
 
-    p {
-        margin: 0.5rem 0;
-    }
+  a:hover {
+    text-decoration: underline;
+  }
 
-    a {
-        color: #fff;
-        text-decoration: none;
-    }
+  @media (min-width: 768px) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 
-    a:hover {
-        text-decoration: underline;
-    }
-
-    @media (min-width: 768px) {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    @media (min-width: 1024px) {
-        padding: 2rem;
-    }
-
+  @media (min-width: 1024px) {
+    padding: 2rem;
+  }
 `;

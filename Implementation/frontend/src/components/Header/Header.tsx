@@ -1,15 +1,19 @@
-import React from "react";
 import styled from "styled-components";
 import { Image, Typography } from "antd";
+import { useNavigate } from "react-router-dom";
+import { routePaths } from "../../app/routes";
 
 const Header = () => {
   const { Title } = Typography;
+  const navigate = useNavigate();
 
-  const navigateToHome = () => {};
+  const navigateToHome = () => {
+    navigate(routePaths.home);
+  };
   return (
     <Container>
       <section className="section-one">
-        <ImageContainer onClick={navigateToHome}>
+        <ImageContainer onClick={() => navigateToHome()}>
           <Image
             src="logos/logo1.PNG"
             alt="logo"
@@ -20,8 +24,10 @@ const Header = () => {
         </ImageContainer>
       </section>
       <section className="section-two">
-        <button>Create an account</button>
-        <button>Login</button>
+        <button onClick={() => navigate(routePaths.register)}>
+          Create an account
+        </button>
+        <button onClick={() => navigate(routePaths.login)}>Login</button>
       </section>
     </Container>
   );
@@ -76,6 +82,7 @@ const ImageContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
   img {
     width: 80px !important;
     cursor: pointer;
