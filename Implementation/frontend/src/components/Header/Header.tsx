@@ -28,6 +28,7 @@ const Header = () => {
           Create an account
         </button>
         <button onClick={() => navigate(routePaths.login)}>Login</button>
+        <button onClick={() => navigate(routePaths.records)}>Reviews</button>
       </section>
     </Container>
   );
