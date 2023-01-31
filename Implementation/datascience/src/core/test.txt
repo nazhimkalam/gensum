@@ -1,0 +1,34 @@
+import transformers
+
+bart_model_path = 'model/base/bart-base_model'
+bart_tokenizer_path = 'model/base/bart-base_tokenizer'
+
+t5_model_path = 'model/base/t5-base_model'
+t5_tokenizer_path = 'model/base/t5-base_tokenizer'
+
+# Load the models
+bart_model = transformers.AutoModelForSeq2SeqLM.from_pretrained(bart_model_path)
+bart_tokenizer = transformers.AutoTokenizer.from_pretrained(bart_tokenizer_path)
+
+t5_model = transformers.AutoModelForSeq2SeqLM.from_pretrained(t5_model_path)
+t5_tokenizer = transformers.AutoTokenizer.from_pretrained(t5_tokenizer_path)
+
+review = "This is a great movie. I really enjoyed it."
+
+# combine the two models into a single model and tokenizer pair using the model not the paths
+model = transformers.EncoderDecoderModel.from_encoder_decoder_pretrained(bart_model, t5_model)
+tokenizer = transformers.EncoderDecoderTokenizer.from_encoder_decoder_pretrained(bart_tokenizer, t5_tokenizer)
+
+
+# encode the review
+input_ids = tokenizer.encode(review, return_tensors='pt')
+
+# generate the summary
+summary_ids = model.generate(input_ids)
+
+# decode the summary
+summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+
+print(summary)
+
+https://medium.com/huggingface/encoder-decoders-in-transformers-a-hybrid-pre-trained-architecture-for-seq2seq-af4d7bf14bb8
