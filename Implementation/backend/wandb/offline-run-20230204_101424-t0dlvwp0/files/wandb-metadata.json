@@ -1,0 +1,24 @@
+{
+    "os": "Windows-10-10.0.22621-SP0",
+    "python": "3.7.0",
+    "heartbeatAt": "2023-02-04T04:44:24.450609",
+    "startedAt": "2023-02-04T04:44:24.206086",
+    "docker": null,
+    "gpu": "NVIDIA GeForce MX130",
+    "gpu_count": 1,
+    "cpu_count": 8,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "C:\\Users\\HP\\Documents\\Github\\IIT\\abstractive-text-summarization-using-optimized-transformers\\Implementation\\backend\\app.py",
+    "codePath": "Implementation\\backend\\app.py",
+    "git": {
+        "remote": "https://github.com/nazhimkalam/abstractive-text-summarization-using-optimized-transformers.git",
+        "commit": "2a9252375e84822fb86749853ddde7f5cceb0e2a"
+    },
+    "email": "nazhimkalam@gmail.com",
+    "root": "C:/Users/HP/Documents/Github/IIT/abstractive-text-summarization-using-optimized-transformers",
+    "host": "NTK",
+    "username": "HP",
+    "executable": "C:\\Users\\HP\\AppData\\Local\\Programs\\Python\\Python37\\python.exe"
+}

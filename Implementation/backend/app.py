@@ -7,6 +7,7 @@ import pandas as pd
 import os
 import firebase_admin
 from firebase_admin import firestore, credentials
+from utils.model_retraining import hyperparameter_serach
 
 app = Flask(__name__)
 app.config['CORS_HEADERS'] = 'Content-Type'
@@ -29,7 +30,7 @@ generalized_tokenizer = transformers.AutoTokenizer.from_pretrained(GENERALIZED_T
 
 firebase_credentials = credentials.Certificate(FIREBASE_CREDENTIAL_CERTIFICATE)
 firebaseApp = firebase_admin.initialize_app(firebase_credentials)
-firestoreDb = firestore.client()
+db = firestore.client()
 
 def query(payload):
     headers = {"Authorization": "Bearer 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"}
@@ -69,9 +70,9 @@ def getGeneralizedSummary():
 @app.route('/user/<userId>', methods=['GET'])
 def getUserData(userId):
     try:
-        user = firestoreDb.collection('domainUsers').document(userId).get()
+        user = db.collection('domainUsers').document(userId).get()
         if user.exists:
-            reviewData = firestoreDb.collection('domainUsers').document(userId).collection('reviewData').get()
+            reviewData = db.collection('domainUsers').document(userId).collection('reviewData').get()
             user = user.to_dict() 
             user['reviewData'] = []
             for review in reviewData:
@@ -126,7 +127,7 @@ def getDomainSpecificSummary():
         sentimentAnalysisOutput = query({ "inputs": summary })
         sentiment, score = getOverallSentimentWithScore(sentimentAnalysisOutput)
 
-        firestoreDb.collection('domainUsers').document(userId).collection('reviewData').add({
+        db.collection('domainUsers').document(userId).collection('reviewData').add({
             'review': review,
             'summary': summary,
             'sentiment': sentiment,
@@ -156,16 +157,16 @@ def retrainDomainSpecifcModel():
         # 1. By checking the isAccessible flag, we can decide whether to use the data for model retraining, then we get all the data from the database which isAccessible = true for the given domainType
         print('Fetching data from the database...')
         if isUseOtherData == True:
-            users = firestoreDb.collection('domainUsers').where('domainType', '==', domainType).where('isAccessible', '==', True).get()
+            users = db.collection('domainUsers').where('domainType', '==', domainType).where('isAccessible', '==', True).get()
             for user in users:
-                reviewData = firestoreDb.collection('domainUsers').document(user.id).collection('reviewData').get()
+                reviewData = db.collection('domainUsers').document(user.id).collection('reviewData').get()
                 for review in reviewData:
                     newReviewSummaryData.append(review.to_dict())
 
         else:
-            user = firestoreDb.collection('domainUsers').document(userId).get()
+            user = db.collection('domainUsers').document(userId).get()
             if user.exists:
-                reviewData = firestoreDb.collection('domainUsers').document(userId).collection('reviewData').get()
+                reviewData = db.collection('domainUsers').document(userId).collection('reviewData').get()
                 for review in reviewData:
                     newReviewSummaryData.append(review.to_dict())
             else:
@@ -192,6 +193,17 @@ def retrainDomainSpecifcModel():
         # 4. Since the new data is combined with the old data, we can start hyperparameter tuning and model retraining
         # 5. Once the hyperparameter tuning is done, we can save the model and tokenizer in the respective folder for the given userId
         # 6. Evaluation results needs to be stored in the database for the given userId and domainType for the model training
+        print('Performing hyperparameter tuning and model retraining...')
+        folder_path = 'model/' + userId
+        model_path =  folder_path + '/' + MODEL_NAME
+        tokenizer_path = folder_path + '/' + TOKENIZER_NAME
+
+        if not os.path.exists(folder_path):
+            return {'message': "Model not found"}, 404
+
+        model = transformers.AutoModelForSeq2SeqLM.from_pretrained(model_path)
+        tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_path)
+        hyperparameter_serach(new_df, userId, model, tokenizer, db)
 
         return {'message': "Successfully triggered the model, this will take a while for completion and will automatically update to the latest model", "response": newReviewSummaryData }, 200
     except Exception as e:
