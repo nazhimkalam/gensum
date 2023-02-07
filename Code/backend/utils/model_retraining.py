@@ -58,6 +58,7 @@ def hyperparameter_serach(newData, userId, model, tokenizer, db):
     # print('completed saving the model and tokenizer...')
     
     # return
+    print(newData)
     
     def preprocess_data(data_to_process):
         inputs = [document for document in data_to_process['document']]
