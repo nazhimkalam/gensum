@@ -5,6 +5,8 @@ import requests
 import transformers
 import pandas as pd
 import os
+import json
+from cryptography.fernet import Fernet
 import firebase_admin
 from firebase_admin import firestore, credentials
 from utils.model_retraining import hyperparameter_serach
@@ -14,7 +16,7 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 CORS(app)
 API = Api(app)
 
-FIREBASE_CREDENTIAL_CERTIFICATE = 'firebase/gatot-7b39d-firebase-adminsdk-bqeyf-0366f4bf3a.json'
+FIREBASE_CREDENTIAL_CERTIFICATE = 'firebase/gensumdb-firebase-adminsdk-twx36-8ad8a7b05c.json'
 MODEL_NAME = 'bart-base_model'
 TOKENIZER_NAME = 'bart-base_tokenizer'
 GENERALIZED_DATASET_PATH = 'dataset/xsum.csv'
@@ -70,13 +72,32 @@ def getGeneralizedSummary():
 @app.route('/user/<userId>', methods=['GET'])
 def getUserData(userId):
     try:
-        user = db.collection('domainUsers').document(userId).get()
+        user = db.collection('users').document(userId).get()
+        with open('encryption_key.key', 'rb') as file:
+            key = file.read()
+        fernet = Fernet(key)
+        
         if user.exists:
-            reviewData = db.collection('domainUsers').document(userId).collection('reviewData').get()
+            reviewData = db.collection('users').document(userId).collection('reviewData').get()
             user = user.to_dict() 
             user['reviewData'] = []
             for review in reviewData:
-                user['reviewData'].append(review.to_dict())
+                summary = review.get('summary')
+                reviewText = review.get('review')
+                sentiment = review.get('sentiment')
+                score = review.get('score')
+                
+                decodedSummary = fernet.decrypt(summary).decode()
+                decodedReview = fernet.decrypt(reviewText).decode()
+                decodedSentiment = fernet.decrypt(sentiment).decode()
+                decodedScore = fernet.decrypt(score).decode()
+                
+                user['reviewData'].append({
+                    'summary': decodedSummary,
+                    'review': decodedReview,
+                    'sentiment': decodedSentiment,
+                    'score': decodedScore
+                })
             return user, 200
         else:
             return {'message': "User not found"}, 404
@@ -116,9 +137,13 @@ def getDomainSpecificSummary():
 
         if not os.path.exists(folder_path):
             return {'message': "Model not found"}, 404
-
+        
+        with open('encryption_key.key', 'rb') as file:
+            key = file.read()
+            
         model = transformers.AutoModelForSeq2SeqLM.from_pretrained(model_path)
         tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_path)
+        fernet = Fernet(key)
 
         inputs = tokenizer.encode(review, return_tensors='pt', max_length=MAX_INPUT, truncation=True)
         outputs = model.generate(inputs, max_length=150, min_length=40, length_penalty=2.0, num_beams=4, early_stopping=True)
@@ -126,12 +151,14 @@ def getDomainSpecificSummary():
 
         sentimentAnalysisOutput = query({ "inputs": summary })
         sentiment, score = getOverallSentimentWithScore(sentimentAnalysisOutput)
-
-        db.collection('domainUsers').document(userId).collection('reviewData').add({
-            'review': review,
-            'summary': summary,
-            'sentiment': sentiment,
-            'score': score
+        score = round(score, 4)
+        score = str(score)
+        
+        db.collection('users').document(userId).collection('reviewData').add({
+            'review': fernet.encrypt(review.encode()),
+            'summary': fernet.encrypt(summary.encode()),
+            'sentiment': fernet.encrypt(sentiment.encode()),
+            'score': fernet.encrypt(score.encode()),
         })
 
         return {'summary': summary, 'sentment': {
@@ -142,6 +169,30 @@ def getDomainSpecificSummary():
         return {'message': str(e)}, 500
 
 
+@app.route('/encryption', methods=['GET'])
+def encrypt():
+    try:
+        message = "hello geeks"
+        
+        with open('encryption_key.key', 'rb') as file:
+            key = file.read()
+        
+        fernet = Fernet(key)
+        encMessage = fernet.encrypt(message.encode())
+        decMessage = fernet.decrypt(encMessage).decode()
+
+        print("original string: ", message)
+        print("encrypted string: ", encMessage)
+        print("decrypted string: ", decMessage)
+
+        # Convert the bytes object to a base64-encoded string
+        encMessageStr = encMessage.decode('utf-8')
+
+        # Return a dictionary containing the encrypted and decrypted messages
+        return json.dumps({'encrypted_text': encMessageStr, 'decrypted_text': decMessage}), 200
+        
+    except Exception as e:
+        return {'message': str(e)}, 500
 
 @app.route('/domain-profile-retraining', methods=['POST'])
 def retrainDomainSpecifcModel():
@@ -150,23 +201,23 @@ def retrainDomainSpecifcModel():
         newReviewSummaryData = []
 
         userId = data['userId'] # The user id is only needed to save the model in the respective folder
-        domainType = data['domainType'] # Using the domainType, we can get all the data from other users which have been given access for retraining
+        domainType = data['type'] # Using the domainType, we can get all the data from other users which have been given access for retraining
         isUseOtherData = data['isUseOtherData'] # we can have a radio button in the frontend to select if the user wants to retrain only with their data or with the other users data as well
 
         # Steps to be considered for retraining the model and dataset recreation
         # 1. By checking the isAccessible flag, we can decide whether to use the data for model retraining, then we get all the data from the database which isAccessible = true for the given domainType
         print('Fetching data from the database...')
         if isUseOtherData == True:
-            users = db.collection('domainUsers').where('domainType', '==', domainType).where('isAccessible', '==', True).get()
+            users = db.collection('users').where('type', '==', domainType).where('isAccessible', '==', True).get()
             for user in users:
-                reviewData = db.collection('domainUsers').document(user.id).collection('reviewData').get()
+                reviewData = db.collection('users').document(user.id).collection('reviewData').get()
                 for review in reviewData:
                     newReviewSummaryData.append(review.to_dict())
 
         else:
-            user = db.collection('domainUsers').document(userId).get()
+            user = db.collection('users').document(userId).get()
             if user.exists:
-                reviewData = db.collection('domainUsers').document(userId).collection('reviewData').get()
+                reviewData = db.collection('users').document(userId).collection('reviewData').get()
                 for review in reviewData:
                     newReviewSummaryData.append(review.to_dict())
             else:
