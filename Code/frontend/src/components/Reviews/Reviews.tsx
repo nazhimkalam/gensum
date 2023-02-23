@@ -35,7 +35,7 @@ const Reviews = () => {
 export default Reviews
 
 const StyledContainer = styled.div`
-    margin: 1pc;
+    margin: 1pc 5vw;
     padding: 1pc;
 
     > h1 {

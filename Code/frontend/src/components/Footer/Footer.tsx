@@ -20,11 +20,13 @@ export default Footer;
 const FooterStyled = styled.div`
   background-color: #000;
   color: #fff;
-  padding: 1rem;
   text-align: center;
+  bottom: 0;
+  width: 100%;
+  position: fixed;
 
   p {
-    margin: 0.5rem 0;
+    margin: 0 5vw;
   }
 
   a {

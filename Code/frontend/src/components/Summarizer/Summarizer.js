@@ -1,14 +1,15 @@
+import { Button } from "antd";
 import axios from "axios";
 import { useState } from "react";
 import { useSelector } from "react-redux";
 import styled from "styled-components";
-import { gatotApi } from "../../apis/gatotApi";
+import { gensumApi } from "../../apis/gensumApi";
 import { selectUser } from "../../redux/reducers/userReducer";
 
 const Summarizer = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [textareaContent, setTextareaContent] = useState<string>("");
-  const [result, setResult] = useState<string | undefined>();
+  const [isLoading, setIsLoading] = useState(false);
+  const [textareaContent, setTextareaContent] = useState("");
+  const [result, setResult] = useState();
   const user = useSelector(selectUser);
 
   const handleScan = () => {
@@ -20,7 +21,7 @@ const Summarizer = () => {
     // let summarizeRequestBody = { detectionText: textareaContent };
     // const categories = ["Not hate", "hate"]
     // axios
-    //   .post(gatotApi.summarize, summarizeRequestBody)
+    //   .post(gensumApi.summarize, summarizeRequestBody)
     //   .then((response) => {
     //     let detectionResult = response.data["Prediction"];
     //     let userRequestBody = { fullName: user.displayName ?? "", email: user.email ?? "" };
@@ -55,10 +56,15 @@ const Summarizer = () => {
         value={textareaContent}
         onChange={(e) => setTextareaContent(e.target.value)}
         placeholder="Enter review here..."
+        style={{ cursor: isLoading ? "not-allowed" : "pointer" }}
       />
       <section className="buttons">
-        <button className="scan-button" onClick={handleScan} disabled={isLoading}> Summarize </button>
-        <button className="reset-button" onClick={handleReset} disabled={isLoading}> Reset </button>
+        <Button className="scan-button" onClick={handleScan} disabled={isLoading}
+          style={{ cursor: isLoading ? "not-allowed" : "pointer" }}
+        > Summarize </Button>
+        <Button className="reset-button" onClick={handleReset} disabled={isLoading}
+          style={{ cursor: isLoading ? "not-allowed" : "pointer" }}
+        > Reset </Button>
       </section>
 
       {result && (
@@ -77,6 +83,7 @@ const StyledContainer = styled.div`
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    margin: 0 5vw;
     padding: 20px;
     textarea {
         width:95%;
@@ -95,7 +102,7 @@ const StyledContainer = styled.div`
         justify-content: center;
         margin: 20px 0;
         button {
-            padding: 10px 40px;
+            height: 40px;
             border: none;
             border-radius: 5px;
             font-size: 16px;

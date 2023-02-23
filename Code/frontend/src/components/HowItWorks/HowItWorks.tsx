@@ -30,7 +30,7 @@ const HowItWorks = () => {
 export default HowItWorks;
 
 const StyledContainer = styled.div`
-    margin: 0;
+    margin: 0 5vw;
     padding: 2rem;
 
     h2 {

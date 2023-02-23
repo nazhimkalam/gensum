@@ -3,7 +3,7 @@ import styled from "styled-components";
 const About = () => {
   return (
     <StyledContainer id="about-section">
-      <h2>About Gatot</h2>
+      <h2>About Gensum</h2>
       <p>
         Lorem, ipsum dolor sit amet consectetur adipisicing elit. Eius quo eaque, quam odit voluptatum omnis ex voluptate consectetur quisquam magnam porro dolor corporis id quod perspiciatis dolores animi aliquid quos fugit minima est eum iste? Quis at tenetur tempora debitis hic exercitationem, fugiat quas quos, repellat amet magnam, commodi minima.
       </p>
@@ -22,7 +22,7 @@ const About = () => {
 export default About;
 
 const StyledContainer = styled.div`
-    margin: 0;
+    margin: 0 5vw;
     padding: 2rem;
 
     h2 {

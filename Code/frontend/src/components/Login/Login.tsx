@@ -1,10 +1,55 @@
 import styled from "styled-components";
+import { useDispatch } from "react-redux";
+import { auth, db, provider } from "../../firebase/firebase.js";
+import { login } from "../../redux/reducers/userReducer";
 
 const Login = () => {
-  const onHandleLogin = () => {};
+  const disptach = useDispatch();
+
+  const onHandleLogin = () => {
+    auth
+    .signInWithPopup(provider)
+    .then((result: any) => {
+      db.collection("users")
+        .doc(result.user.uid)
+        .get()
+        .then((doc: any) => {
+          if (doc.exists) {
+            console.log("User already exists");
+          } else {
+            db.collection("users").doc(result.user.uid).set({
+              email: result.user.email,
+              name: "",
+              type: 0,
+              isAccessible: false,
+            });
+
+            console.log("User created");
+          }
+        })
+        .catch((error: any) => {
+          console.log("Error getting document:", error);
+        });
+
+      disptach(
+        login({
+          id: result.user.uid,
+          displayName: result.user.displayName,
+          email: result.user.email,
+        })
+      );
+      alert(
+        "You have been successfully registered, please naviagte to the edit profile to update your profile information"
+      );
+    })
+    .catch((error: any) => {
+      console.log(error.message);
+      alert("Error occurred, please refresh the page");
+    });
+  };
   return (
     <StyledContainer>
-      <button onClick={onHandleLogin}>Login using Google</button>
+      <button onClick={onHandleLogin}>Sign In using Google</button>
     </StyledContainer>
   );
 };

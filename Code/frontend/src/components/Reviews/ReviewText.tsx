@@ -37,7 +37,7 @@ const ReviewText = (props: any) => {
 export default ReviewText;
 
 const StyledContainer = styled.div`
-  margin: 1pc 0;
+  margin: 2pc 0;
   padding: 1pc 0;
 
   display: flex;
