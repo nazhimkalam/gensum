@@ -1,31 +1,31 @@
 import axios from "axios";
 
-export const postRequest = (api: string, body: object, token: string | undefined | null, removeHeader?: boolean) =>
+export const postRequest = (api: string, body: object, removeHeader?: boolean) =>
   axios
-    .post(api, body, { headers: { 'Content-Type': !removeHeader && 'application/json', 'Authorization': `Bearer ${token}` } })
+    .post(api, body)
     .then((response) => response)
     .catch((error) => error);
 
-export const getRequest = (api: string, token: string | undefined | null) =>
+export const getRequest = (api: string) =>
   axios
-    .get(api, { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } })
+    .get(api)
     .then((response) => response)
     .catch((error) => error);
 
-export const updateRequest = (api: string, body: object, token: string | undefined | null) =>
+export const updateRequest = (api: string, body: object) =>
   axios
-    .put(api, body, { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } })
+    .put(api, body)
     .then((response) => response)
     .catch((error) => error);
 
-export const deleteRequest = (api: string, token: string | undefined | null) =>
+export const deleteRequest = (api: string) =>
   axios
-    .delete(api, { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } })
+    .delete(api)
     .then((response) => response)
     .catch((error) => error);
 
-export const patchRequest = (api: string, body: object, token: string | undefined | null) =>
+export const patchRequest = (api: string, body: object) =>
   axios
-    .patch(api, body, { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } })
+    .patch(api, body)
     .then((response) => response)
     .catch((error) => error);

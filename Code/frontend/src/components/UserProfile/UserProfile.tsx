@@ -13,6 +13,7 @@ const UserProfile = () => {
 
   const [username, setUsername] = useState("");
   const [domainType, setDomainType] = useState("");
+  const [contactNumber, setContactNumber] = useState('')
   const [accessTypeAttribute, setAccessTypeAttribute] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -102,7 +103,14 @@ const UserProfile = () => {
             <Option value={false}>No</Option>
           </Select>
         </Form.Item>
-
+        <Form.Item className="form-item" label="Contact Number">
+          <Input
+            placeholder="Enter contact number"
+            value={contactNumber}
+            onChange={(e) => setContactNumber(e.target.value)}
+            disabled={isLoading}
+          />
+        </Form.Item>
         <Form.Item className="form-item">
           <Button className="btn btn-primary" onClick={handleFormSubmit} 
             disabled={isLoading}
@@ -111,6 +119,7 @@ const UserProfile = () => {
           </Button>
         </Form.Item>
       </Form>
+
     </StyledContainer>
   );
 };
@@ -122,7 +131,7 @@ const StyledContainer = styled.div`
 
   > form {
     margin: 5pc 0;
-
+    margin-bottom: 20vw;
     > h1 {
       margin-bottom: 1pc;
     }

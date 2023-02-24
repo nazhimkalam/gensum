@@ -51,7 +51,7 @@ def getOverallSentimentWithScore(sentiment):
 def hello_world():
     return {'message': 'Hello World'}, 200
 
-@app.route('/text-summarizer/general', methods=['POST'])
+@app.route('/api/gensum/general', methods=['POST'])
 def getGeneralizedSummary():
     try:
         data = request.get_json()
@@ -69,7 +69,7 @@ def getGeneralizedSummary():
     except Exception as e:
         return {'message': str(e)}, 500
 
-@app.route('/user/<userId>', methods=['GET'])
+@app.route('/api/gensum/review-records/user/<userId>', methods=['GET'])
 def getUserData(userId):
     try:
         user = db.collection('users').document(userId).get()
@@ -78,10 +78,10 @@ def getUserData(userId):
         fernet = Fernet(key)
         
         if user.exists:
-            reviewData = db.collection('users').document(userId).collection('reviewData').get()
+            reviews = db.collection('users').document(userId).collection('reviews').get()
             user = user.to_dict() 
-            user['reviewData'] = []
-            for review in reviewData:
+            user['reviews'] = []
+            for review in reviews:
                 summary = review.get('summary')
                 reviewText = review.get('review')
                 sentiment = review.get('sentiment')
@@ -92,11 +92,13 @@ def getUserData(userId):
                 decodedSentiment = fernet.decrypt(sentiment).decode()
                 decodedScore = fernet.decrypt(score).decode()
                 
-                user['reviewData'].append({
+                user['reviews'].append({
+                    'id': review.id,
                     'summary': decodedSummary,
                     'review': decodedReview,
                     'sentiment': decodedSentiment,
-                    'score': decodedScore
+                    'score': decodedScore,
+                    'createdAt': review.get('createdAt')
                 })
             return user, 200
         else:
@@ -104,7 +106,7 @@ def getUserData(userId):
     except Exception as e:
         return {'message': str(e)}, 500
 
-@app.route('/domain-profile-creation', methods=['POST'])
+@app.route('/api/gensum/domain-profile', methods=['POST'])
 def createDomainUserProfile():
     try:
         data = request.get_json()
@@ -124,7 +126,7 @@ def createDomainUserProfile():
     except Exception as e:
         return {'message': str(e)}, 500
 
-@app.route('/text-summarizer/domain', methods=['POST'])
+@app.route('/api/gensum/domain-specific', methods=['POST'])
 def getDomainSpecificSummary():
     try:
         data = request.get_json()
@@ -154,11 +156,12 @@ def getDomainSpecificSummary():
         score = round(score, 4)
         score = str(score)
         
-        db.collection('users').document(userId).collection('reviewData').add({
+        db.collection('users').document(userId).collection('reviews').add({
             'review': fernet.encrypt(review.encode()),
             'summary': fernet.encrypt(summary.encode()),
             'sentiment': fernet.encrypt(sentiment.encode()),
             'score': fernet.encrypt(score.encode()),
+            'createdAt': firestore.SERVER_TIMESTAMP,
         })
 
         return {'summary': summary, 'sentment': {
@@ -194,7 +197,7 @@ def encrypt():
     except Exception as e:
         return {'message': str(e)}, 500
 
-@app.route('/domain-profile-retraining', methods=['POST'])
+@app.route('/api/gensum/retrain', methods=['POST'])
 def retrainDomainSpecifcModel():
     try:
         data = request.get_json()
@@ -210,15 +213,15 @@ def retrainDomainSpecifcModel():
         if isUseOtherData == True:
             users = db.collection('users').where('type', '==', domainType).where('isAccessible', '==', True).get()
             for user in users:
-                reviewData = db.collection('users').document(user.id).collection('reviewData').get()
-                for review in reviewData:
+                reviews = db.collection('users').document(user.id).collection('reviews').get()
+                for review in reviews:
                     newReviewSummaryData.append(review.to_dict())
 
         else:
             user = db.collection('users').document(userId).get()
             if user.exists:
-                reviewData = db.collection('users').document(userId).collection('reviewData').get()
-                for review in reviewData:
+                reviews = db.collection('users').document(userId).collection('reviews').get()
+                for review in reviews:
                     newReviewSummaryData.append(review.to_dict())
             else:
                 return {'message': "User not found"}, 404

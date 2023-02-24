@@ -1,12 +1,29 @@
+import { useSelector } from "react-redux";
 import styled from "styled-components";
+import { db } from "../../firebase/firebase";
+import { selectUser } from "../../redux/reducers/userReducer";
+import { useState } from "react";
 
 const ReviewText = (props: any) => {
-  const { details } = props;
-  const { id, review, summary, counter, createdAt } = details;
+  const { details, setDeletedReviewId } = props;
+  const { id, review, summary, counter, createdAt, sentiment, score } = details;
+  const user = useSelector(selectUser);
+  const [isLoading, setIsLoading] = useState(false)
 
-  const onHandleDeleteReview = (reviewId: string) => {
-
-  }
+  const onHandleDeleteReview = () => {
+    setIsLoading(true)
+    db.collection("users").doc(user.id).collection("reviews").doc(id).delete()
+      .then(() => {
+        console.log("Document successfully deleted!");
+        setDeletedReviewId(id)
+      })
+      .catch((error) => {
+        console.error("Error removing document: ", error);
+      })
+      .finally(() => {
+        setIsLoading(false)
+      });
+  };
 
   return (
     <StyledContainer>
@@ -23,12 +40,24 @@ const ReviewText = (props: any) => {
         </p>
 
         <p>
+          <strong>Sentiment: </strong>
+          {sentiment}
+        </p>
+
+        <p>
+          <strong>Sentiment score: </strong>
+          {score}
+        </p>
+
+        <p>
           <strong>Created At: </strong>
           {createdAt}
         </p>
       </section>
       <section>
-        <button onClick={() => onHandleDeleteReview(id)}>DELETE</button>
+        <button onClick={onHandleDeleteReview} disabled={isLoading}>
+          {isLoading ? "Deleting..." : "Delete"}
+        </button>
       </section>
     </StyledContainer>
   );
@@ -54,7 +83,8 @@ const StyledContainer = styled.div`
     }
 
     > p {
-      margin: 0.5pc 0;
+      margin: 1pc 0;
+      text-align: justify;
     }
 
     > button {
