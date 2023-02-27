@@ -20,10 +20,7 @@ const Reviews = () => {
       setIsLoading(true);
       const response = await getReviewsByUserId(user.id);
       const convertTimestamp = response.reviews.map((review: any) => {
-        return {
-          ...review,
-          createdAt: review.createdAt,
-        };
+        return { ...review, createdAt: review.createdAt };
       });
       const sortedReviews = convertTimestamp.sort((a: any, b: any) => {
         const dateA = new Date(a.createdAt);
@@ -33,10 +30,7 @@ const Reviews = () => {
 
       const reviewsWithCounter = sortedReviews.map(
         (review: any, index: any) => {
-          return {
-            ...review,
-            counter: index + 1,
-          };
+          return { ...review, counter: index + 1 };
         }
       );
 
@@ -49,9 +43,7 @@ const Reviews = () => {
   useEffect(() => {
     if (deletedReviewId) {
       console.log("review deletion triggered...");
-      const filteredReviews = reviews.filter(
-        (review: any) => review.id !== deletedReviewId
-      );
+      const filteredReviews = reviews.filter((review: any) => review.id !== deletedReviewId);
       setReviews(filteredReviews);
       setDeletedReviewId("");
     }
@@ -76,8 +68,8 @@ const Reviews = () => {
   return (
     <StyledContainer>
       <section>
-        <h1>Reviews</h1>
-        <Button onClick={handleDownloadRecords} disabled={generatingCsvLoader}>{generatingCsvLoader ? 'Generating...' : 'Download Records'}</Button>
+        {!isLoading && <h1>{reviews.length < 1 ? 'No records available' : 'Reviews'}</h1>}
+        {!isLoading && reviews.length > 0 && <Button onClick={handleDownloadRecords} disabled={generatingCsvLoader}>{generatingCsvLoader ? 'Generating...' : 'Download Records'}</Button>}
       </section>
 
       <section>
@@ -85,11 +77,7 @@ const Reviews = () => {
           <p>Loading...</p>
         ) : (
           reviews.map((review, index) => (
-            <ReviewText
-              key={index}
-              details={review}
-              setDeletedReviewId={setDeletedReviewId}
-            />
+            <ReviewText key={index} details={review} setDeletedReviewId={setDeletedReviewId}/>
           ))
         )}
       </section>
