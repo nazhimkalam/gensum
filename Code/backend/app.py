@@ -1,10 +1,12 @@
 from flask_cors import CORS
 from flask_restful import Api
-from flask import Flask, request
+from flask import Flask, request, make_response
 import requests
 import transformers
 import pandas as pd
 import os
+import csv
+from jsonify import convert
 import json
 from cryptography.fernet import Fernet
 import firebase_admin
@@ -194,6 +196,56 @@ def encrypt():
         # Return a dictionary containing the encrypted and decrypted messages
         return json.dumps({'encrypted_text': encMessageStr, 'decrypted_text': decMessage}), 200
         
+    except Exception as e:
+        return {'message': str(e)}, 500
+
+# creating an api endpoint to return a csv file with the review and summary data
+@app.route('/api/gensum/review-records/user/<userId>/csv', methods=['GET'])
+def getUserDataCSV(userId):
+    try:
+        print('user id', userId)
+        user = db.collection('users').document(userId).get()
+        with open('encryption_key.key', 'rb') as file:
+            key = file.read()
+        fernet = Fernet(key)
+        
+        if user.exists:
+            reviews = db.collection('users').document(userId).collection('reviews').get()
+            user = user.to_dict() 
+            user['decrypted-reviews'] = []
+            index = 1
+            for review in reviews:
+                summary = review.get('summary')
+                reviewText = review.get('review')
+                sentiment = review.get('sentiment')
+                score = review.get('score')
+                createdAt = review.get('createdAt')
+                
+                decodedSummary = fernet.decrypt(summary).decode()
+                decodedReview = fernet.decrypt(reviewText).decode()
+                decodedSentiment = fernet.decrypt(sentiment).decode()
+                decodedScore = fernet.decrypt(score).decode()
+                
+                # Append the decoded review data to the user_reviews list
+                user['decrypted-reviews'].append([index, decodedSummary, decodedReview, decodedSentiment, decodedScore, createdAt])
+                index += 1
+
+            # Create a CSV file
+            with open('user_reviews.csv', 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(['Id', 'Summary', 'Review', 'Sentiment', 'Score', 'Created At'])
+                writer.writerows(user['decrypted-reviews'])
+                
+            # Return the CSV file as a response
+            with open('user_reviews.csv', 'rb') as f:
+                csv_data = f.read()
+                
+            response = make_response(csv_data)
+            response.headers['Content-Type'] = 'text/csv'
+            response.headers['Content-Disposition'] = 'attachment; filename=user_reviews.csv'
+            return response
+        else:
+            return {'message': "User not found"}, 404
     except Exception as e:
         return {'message': str(e)}, 500
 

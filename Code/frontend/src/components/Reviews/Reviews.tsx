@@ -4,12 +4,16 @@ import { useEffect, useState } from "react";
 import { getReviewsByUserId } from "../../services/gensum.service";
 import { useSelector } from "react-redux";
 import { selectUser } from "../../redux/reducers/userReducer";
+import { Button } from "antd";
+import { getRequest } from "../../utils/requests";
+import { gensumApi } from "../../apis/gensumApi";
 
 const Reviews = () => {
   const [reviews, setReviews] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const user = useSelector(selectUser);
   const [deletedReviewId, setDeletedReviewId] = useState("");
+  const [generatingCsvLoader, setGeneratingCsvLoader] = useState(false);
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -53,9 +57,28 @@ const Reviews = () => {
     }
   }, [deletedReviewId, reviews]);
 
+  const handleDownloadRecords = async () => {
+    setGeneratingCsvLoader(true)
+    await getRequest(`${gensumApi.generateReviewCsv}/${user.id}/csv`).then(
+      (res) => {
+        const blob = new Blob([res.data], { type: "text/csv" });
+        const link = document.createElement("a");
+        link.href = window.URL.createObjectURL(blob);
+        link.download = "reviews.csv";
+        link.click();
+      }
+    ).catch(
+      (err) => { 
+        console.log(err);
+      }).finally(() => { setGeneratingCsvLoader(false) });
+  };
+
   return (
     <StyledContainer>
-      <h1>Reviews</h1>
+      <section>
+        <h1>Reviews</h1>
+        <Button onClick={handleDownloadRecords} disabled={generatingCsvLoader}>{generatingCsvLoader ? 'Generating...' : 'Download Records'}</Button>
+      </section>
 
       <section>
         {isLoading ? (
@@ -86,5 +109,14 @@ const StyledContainer = styled.div`
 
   > section {
     margin: 1pc 0;
+
+    &:first-child {
+      display: flex;
+      justify-content: space-between;
+
+      > button {
+        margin: 0;
+      }
+    }
   }
 `;

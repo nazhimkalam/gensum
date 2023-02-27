@@ -7,4 +7,5 @@ export const gensumApi = {
     domainProfileCreation: `${BASE_URL}/api/gensum/domain-profile`,
     modelRetraining: `${BASE_URL}/api/gensum/retrain`,
     reviewRecords: `${BASE_URL}/api/gensum/review-records`,
+    generateReviewCsv: `${BASE_URL}/api/gensum/review-records/user`,
 }
