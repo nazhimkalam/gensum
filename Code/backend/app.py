@@ -64,7 +64,7 @@ def getGeneralizedSummary():
 
         sentimentAnalysisOutput = query({ "inputs": summary })
         sentiment, score = getOverallSentimentWithScore(sentimentAnalysisOutput)
-        return {'summary': summary, 'sentment': {
+        return {'summary': summary, 'sentiment': {
             'sentiment': sentiment,
             'score': score
         } }, 200

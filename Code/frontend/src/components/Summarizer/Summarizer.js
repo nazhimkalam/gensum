@@ -1,46 +1,35 @@
 import { Button } from "antd";
-import axios from "axios";
 import { useState } from "react";
 import { useSelector } from "react-redux";
 import styled from "styled-components";
 import { gensumApi } from "../../apis/gensumApi";
 import { selectUser } from "../../redux/reducers/userReducer";
+import { postRequest } from "../../utils/requests";
 
 const Summarizer = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [textareaContent, setTextareaContent] = useState("");
-  const [result, setResult] = useState();
+  const [result, setResult] = useState({});
   const user = useSelector(selectUser);
 
-  const handleScan = () => {
+  const handleScan = async () => {
     if (!textareaContent) {
       alert("Please enter text to scan");
       return;
     }
     setIsLoading(true);
-    // let summarizeRequestBody = { detectionText: textareaContent };
-    // const categories = ["Not hate", "hate"]
-    // axios
-    //   .post(gensumApi.summarize, summarizeRequestBody)
-    //   .then((response) => {
-    //     let detectionResult = response.data["Prediction"];
-    //     let userRequestBody = { fullName: user.displayName ?? "", email: user.email ?? "" };
-    //     let detectionResultIndex = categories.indexOf(detectionResult);
-        
-    //     setResult(detectionResult);
-
-    //     axios.post(userApi.create, userRequestBody).then((response) => { 
-    //       let userId = parseInt(response.data["id"]);
-    //       let SummarizerRequestBody = { userId: userId, result: detectionResultIndex.toString(), description: textareaContent };
-
-    //       axios.post(SummarizerApi.create, SummarizerRequestBody).then(() => { 
-    //         alert("Successfully scanned and saved!");
-        
-    //       }).catch(() => alert("Something weht wrong when creating detection result into the database"));
-    //     }).catch(() => alert("Something went wrong while creating the user document"));
-    //   })
-    //   .catch(() => alert("Something went wrong when scanning the text"))
-    //   .finally(() => setIsLoading(false));
+    
+    const apiEndpoint = user.id === undefined ? gensumApi.generalSummarization : gensumApi.domainSpecificSummarization;
+    const summarizeRequestBody = user.id === undefined ? { review: textareaContent } : { review: textareaContent, userId: user.id };
+      
+    await postRequest(apiEndpoint, summarizeRequestBody).then((response) => {
+      setResult({
+        review: textareaContent,
+        summary: response.summary,
+        sentiement: response.sentiment.sentiment,
+        score: response.sentiment.score
+      })
+    }).catch(() => alert("Something went wrong when scanning the text")).finally(() => setIsLoading(false));
   };
 
   const handleReset = () => {
@@ -61,7 +50,7 @@ const Summarizer = () => {
       <section className="buttons">
         <Button className="scan-button" onClick={handleScan} disabled={isLoading}
           style={{ cursor: isLoading ? "not-allowed" : "pointer" }}
-        > Summarize </Button>
+        > {isLoading ? 'Summarizing...' : 'Summarize'} </Button>
         <Button className="reset-button" onClick={handleReset} disabled={isLoading}
           style={{ cursor: isLoading ? "not-allowed" : "pointer" }}
         > Reset </Button>
@@ -69,7 +58,7 @@ const Summarizer = () => {
 
       {result && (
         <div className="detection-result">
-          <h3>Detection result:</h3> Text is of type: {result}
+          <h3>Summarization result:</h3> {result.summary}
         </div>
       )}
     </StyledContainer>
