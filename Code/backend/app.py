@@ -166,7 +166,7 @@ def getDomainSpecificSummary():
             'createdAt': firestore.SERVER_TIMESTAMP,
         })
 
-        return {'summary': summary, 'sentment': {
+        return {'summary': summary, 'sentiment': {
             'sentiment': sentiment,
             'score': score
         } }, 200
