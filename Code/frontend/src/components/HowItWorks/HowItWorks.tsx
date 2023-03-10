@@ -3,26 +3,12 @@ import styled from "styled-components";
 const HowItWorks = () => {
   return (
     <StyledContainer id="section">
-      <h2>How it works?</h2>
+      <h2>How gensum works?</h2>
       <p>
-        Lorem, ipsum dolor sit amet consectetur adipisicing elit. Eius quo eaque, quam odit voluptatum omnis ex voluptate consectetur quisquam magnam porro dolor corporis id quod perspiciatis dolores animi aliquid quos fugit minima est eum iste? Quis at tenetur tempora debitis hic exercitationem, fugiat quas quos, repellat amet magnam, commodi minima.
+        User has the option to sign-in to the application as a domain user, or to also use the application as a general user without signing in. Domain users are allowed to retrain the model with their own data, and also manage their profile metadata. 
       </p>
 
-      <p>
-        Lorem ipsum dolor sit amet consectetur adipisicing elit. Qui a architecto voluptates cupiditate. Culpa assumenda ipsum alias, repellat aperiam temporibus quos architecto error sint doloribus id enim necessitatibus tenetur ex explicabo cumque ducimus possimus labore sunt sed! Dignissimos, ullam illo?
-      </p>
-
-      <p>
-        Lorem ipsum dolor sit amet consectetur adipisicing elit. Tenetur, ipsa recusandae. Atque unde facere omnis laudantium ut vel, enim, exercitationem fugiat maiores nesciunt blanditiis recusandae incidunt aut deserunt praesentium dolor expedita explicabo non aperiam magni quas placeat ipsa beatae! Laboriosam quis doloremque eveniet quisquam fugit?
-      </p>
-
-      <p>
-        Lorem ipsum dolor sit amet consectetur adipisicing elit. Qui a architecto voluptates cupiditate. Culpa assumenda ipsum alias, repellat aperiam temporibus quos architecto error sint doloribus id enim necessitatibus tenetur ex explicabo cumque ducimus possimus labore sunt sed! Dignissimos, ullam illo?
-      </p>
-
-      <p>
-        Lorem ipsum dolor sit amet consectetur adipisicing elit. Tenetur, ipsa recusandae. Atque unde facere omnis laudantium ut vel, enim, exercitationem fugiat maiores nesciunt blanditiis recusandae incidunt aut deserunt praesentium dolor expedita explicabo non aperiam magni quas placeat ipsa beatae! Laboriosam quis doloremque eveniet quisquam fugit?
-      </p>
+      <p>General users are not allowed to retrain the model with their own data, and also not allowed to manage their profile metadata. However, both of the users will be able to perform the core functionality of the application which is to summarize the review text.</p>
     </StyledContainer>
   );
 };
