@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
-import { Button, Form, Input, Select, Typography } from "antd";
+import { Button, Form, Input, Select, Typography, notification } from "antd";
 import { DomainType } from "../../enum/DomainType";
 import { useSelector } from "react-redux";
 import { selectUser } from "../../redux/reducers/userReducer";
@@ -10,6 +10,9 @@ const UserProfile = () => {
   const { Option } = Select;
   const { Title } = Typography;
   const user = useSelector(selectUser);
+  const triggerNotification = (title: string, message: string) => {
+    notification.open({ message: title, description: message, placement: "bottomRight" });
+  };
 
   const [username, setUsername] = useState("");
   const [domainType, setDomainType] = useState("");
@@ -30,6 +33,7 @@ const UserProfile = () => {
           setUsername(data.name);
           setDomainType(data.type);
           setAccessTypeAttribute(data.isAccessible);
+          setContactNumber(data.contactNumber)
         } else {
           console.log("No such document!");
         }
@@ -43,7 +47,7 @@ const UserProfile = () => {
     e.preventDefault();
 
     if (parseInt(domainType) === 0 || username === "") {
-      alert("Please fill in all the fields");
+      triggerNotification("Error", "Please fill in all the fields");
       return;
     }
 
@@ -56,9 +60,10 @@ const UserProfile = () => {
         name: username,
         type: domainType,
         isAccessible: accessTypeAttribute,
+        contactNumber: contactNumber
       })
       .then(() => {
-        alert("User profile updated successfully");
+        triggerNotification("Success", "User profile updated successfully");
       })
       .finally(() => {
         setIsLoading(false);

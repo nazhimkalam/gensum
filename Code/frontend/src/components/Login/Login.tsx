@@ -2,9 +2,13 @@ import styled from "styled-components";
 import { useDispatch } from "react-redux";
 import { auth, db, provider } from "../../firebase/firebase.js";
 import { login } from "../../redux/reducers/userReducer";
+import { notification } from "antd";
 
 const Login = () => {
   const disptach = useDispatch();
+  const triggerNotification = (title: string, message: string) => {
+    notification.open({ message: title, description: message, placement: "bottomRight" });
+  };
 
   const onHandleLogin = () => {
     auth
@@ -38,13 +42,11 @@ const Login = () => {
           email: result.user.email,
         })
       );
-      alert(
-        "You have been successfully registered, please naviagte to the edit profile to update your profile information"
-      );
+      triggerNotification("Success", "You have been successfully registered, please naviagte to the edit profile to update your profile information");
     })
     .catch((error: any) => {
       console.log(error.message);
-      alert("Error occurred, please refresh the page");
+      triggerNotification("Error", "Error occurred, please refresh the page");
     });
   };
   return (

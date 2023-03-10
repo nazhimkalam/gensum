@@ -1,4 +1,4 @@
-import { Button } from "antd";
+import { Button, notification, Input } from "antd";
 import { useState } from "react";
 import { useSelector } from "react-redux";
 import styled from "styled-components";
@@ -11,10 +11,15 @@ const Summarizer = () => {
   const [textareaContent, setTextareaContent] = useState("");
   const [result, setResult] = useState({});
   const user = useSelector(selectUser);
+  const { TextArea } = Input;
+
+  const triggerNotification = (title, message) => {
+    notification.open({ message: title, description: message, placement: "bottomRight" });
+  };
 
   const handleScan = async () => {
     if (!textareaContent) {
-      alert("Please enter text to scan");
+      triggerNotification("Error", "Please enter text to scan");
       return;
     }
     setIsLoading(true);
@@ -23,13 +28,17 @@ const Summarizer = () => {
     const summarizeRequestBody = user.id === undefined ? { review: textareaContent } : { review: textareaContent, userId: user.id };
       
     await postRequest(apiEndpoint, summarizeRequestBody).then((response) => {
+      console.log(response.data)
       setResult({
         review: textareaContent,
-        summary: response.summary,
-        sentiement: response.sentiment.sentiment,
-        score: response.sentiment.score
+        summary: response.data.summary,
+        sentiement: response.data.sentiment.sentiment,
+        score: response.data.sentiment.score
       })
-    }).catch(() => alert("Something went wrong when scanning the text")).finally(() => setIsLoading(false));
+    }).catch((error) => {
+      console.log(error)
+      triggerNotification("Error", "Something went wrong when scanning the text");
+    }).finally(() => setIsLoading(false));
   };
 
   const handleReset = () => {
@@ -39,27 +48,38 @@ const Summarizer = () => {
 
   return (
     <StyledContainer>
-      <textarea
-        rows={10}
-        disabled={isLoading}
-        value={textareaContent}
-        onChange={(e) => setTextareaContent(e.target.value)}
-        placeholder="Enter review here..."
-        style={{ cursor: isLoading ? "not-allowed" : "pointer" }}
-      />
-      <section className="buttons">
-        <Button className="scan-button" onClick={handleScan} disabled={isLoading}
-          style={{ cursor: isLoading ? "not-allowed" : "pointer" }}
-        > {isLoading ? 'Summarizing...' : 'Summarize'} </Button>
-        <Button className="reset-button" onClick={handleReset} disabled={isLoading}
-          style={{ cursor: isLoading ? "not-allowed" : "pointer" }}
-        > Reset </Button>
-      </section>
+      {!isLoading ? (
+        <TextArea rows={10} disabled={isLoading} value={textareaContent} onChange={(e) => setTextareaContent(e.target.value)} placeholder="Enter review here..."/>
+      ): (
+        <img src="images/loader.gif" alt="loading"/>
+      )}
+      {!isLoading && <section className="buttons">
+        <Button className="scan-button" onClick={handleScan} disabled={isLoading}> Summarize </Button>
+        <Button className="reset-button" onClick={handleReset} disabled={isLoading}> Reset </Button>
+      </section>}
 
-      {result && (
-        <div className="detection-result">
-          <h3>Summarization result:</h3> {result.summary}
-        </div>
+      {result?.summary && (
+        <>
+          <div className="detection-result summary">
+            <h3>Initial review:</h3> {result.review}
+          </div>
+          <br />
+          
+          <div className="detection-result summary">
+            <h3>Summarized review:</h3> {result.summary}
+          </div>
+          <br />
+        
+          <div className="detection-result sentiment">
+            <h3>Review sentiment:</h3> {result.sentiement}
+          </div>
+          <br />
+
+          <div className="detection-result sentiment">
+            <h3>Review sentiment score:</h3> {result.score}
+          </div>
+          <br />
+        </>
       )}
     </StyledContainer>
   );
@@ -70,12 +90,16 @@ export default Summarizer;
 const StyledContainer = styled.div`
     display: flex;
     flex-direction: column;
-    align-items: center;
     justify-content: center;
     margin: 0 5vw;
     padding: 20px;
+
+    img {
+      object-fit: contain;
+      height: 150px;
+    }
+
     textarea {
-        width:95%;
         padding: 10px;
         border: 1px solid black;
         border-radius: 5px;
@@ -122,7 +146,7 @@ const StyledContainer = styled.div`
             }
         }
     }
-    .detection-result {
+    .detection-result summary {
         margin-top: 20px;
         h3 {
             margin-bottom: 10px;

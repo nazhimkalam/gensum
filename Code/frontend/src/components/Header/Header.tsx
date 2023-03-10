@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { Image, Typography } from "antd";
+import { Image, Typography, notification } from "antd";
 import { useNavigate } from "react-router-dom";
 import { routePaths } from "../../app/routes";
 import { useDispatch, useSelector } from "react-redux";
@@ -13,6 +13,10 @@ const Header = () => {
   const navigate = useNavigate();
   const disptach = useDispatch();
   const user = useSelector(selectUser);
+
+  const triggerNotification = (title: string, message: string) => {
+    notification.open({ message: title, description: message, placement: "bottomRight" });
+  };
 
   const handleUserLogout = () => {
     auth.signOut().then(() => {
@@ -40,6 +44,7 @@ const Header = () => {
                 name: "",
                 type: 0,
                 isAccessible: false,
+                contactNumber: "",
               });
 
               console.log("User created");
@@ -56,13 +61,11 @@ const Header = () => {
             email: result.user.email,
           })
         );
-        alert(
-          "You have been successfully registered, please naviagte to the edit profile to update your profile information"
-        );
+        triggerNotification("Success", "You have been successfully registered, please naviagte to the edit profile to update your profile information");
       })
       .catch((error: any) => {
         console.log(error.message);
-        alert("Error occurred, please refresh the page");
+        triggerNotification("Error", "Error occurred, please refresh the page");
       });
   };
 
