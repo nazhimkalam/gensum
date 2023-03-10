@@ -21,6 +21,7 @@ const Header = () => {
   const handleUserLogout = () => {
     auth.signOut().then(() => {
       disptach(logout());
+      triggerNotification("Success", "You have been successfully logged out");
     });
   };
 
@@ -61,7 +62,7 @@ const Header = () => {
             email: result.user.email,
           })
         );
-        triggerNotification("Success", "You have been successfully registered, please naviagte to the edit profile to update your profile information");
+        triggerNotification("Success", "You have been successfully logged in, naviagte to the manage profile to update your profile information");
       })
       .catch((error: any) => {
         console.log(error.message);

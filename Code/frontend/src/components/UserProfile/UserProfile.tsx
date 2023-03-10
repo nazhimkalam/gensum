@@ -5,6 +5,8 @@ import { DomainType } from "../../enum/DomainType";
 import { useSelector } from "react-redux";
 import { selectUser } from "../../redux/reducers/userReducer";
 import { db } from "../../firebase/firebase";
+import { useNavigate } from "react-router-dom";
+import { routePaths } from "../../app/routes";
 
 const UserProfile = () => {
   const { Option } = Select;
@@ -19,10 +21,16 @@ const UserProfile = () => {
   const [contactNumber, setContactNumber] = useState('')
   const [accessTypeAttribute, setAccessTypeAttribute] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const userId = user?.id;
     setIsLoading(true);
+
+    if (!userId) {
+      navigate(routePaths.home);
+      return;
+    }
 
     db.collection("users")
       .doc(userId)
