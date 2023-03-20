@@ -12,7 +12,7 @@ from cryptography.fernet import Fernet
 import firebase_admin
 from firebase_admin import firestore, credentials
 from utils.model_retraining import hyperparameter_serach
-from types.types import DOMAIN_TYPES
+from utils.types import DOMAIN_TYPES
 
 app = Flask(__name__)
 app.config['CORS_HEADERS'] = 'Content-Type'
@@ -272,17 +272,31 @@ def handleWritingDataIntoDatabase():
         else:
             return {'message': "Invalid dataset type"}, 400
 
-        dataframe = pd.read_csv(dataset_path)
+        df = pd.read_csv(dataset_path)
+        df = df.drop(df.columns[0], axis=1)
         print('completed reading the database')
         
         user = db.collection('users').document(userId).get()
         if user.exists:
-            # using the dataframe, create an array that we can write the data into the database which is the summary and review 
-            
-            # extract 250 rows from the dataframe into an array as an object { summary, review }
-            filtered_data = dataframe[["Summary", "Document"]].to_dict(orient="records")
-            
-            
+            with open('encryption_key.key', 'rb') as file:
+                key = file.read()
+            fernet = Fernet(key)
+            numberOfDataRecords = 250
+        
+            dataset_array = df.iloc[:numberOfDataRecords].values  
+            # print("The length of the dataset is", len(dataset_array))
+            # print("This is the content of the array", dataset_array)
+            # print("This the columns of the dataset", df.info())
+            for row in dataset_array:
+                db.collection('users').document(userId).collection('reviews').add({
+                    'review': fernet.encrypt(row[0].encode()),
+                    'summary': fernet.encrypt(row[1].encode()),
+                    'createdAt': firestore.SERVER_TIMESTAMP,
+                })
+                # i dont want to set but i want to append or add to the existing data
+            # print("Completed writing the data into the database")
+            return {'message': "Completed writing the data into the database"}, 200
+        
             
         
     except Exception as e:
