@@ -12,6 +12,7 @@ from cryptography.fernet import Fernet
 import firebase_admin
 from firebase_admin import firestore, credentials
 from utils.model_retraining import hyperparameter_serach
+from types.types import DOMAIN_TYPES
 
 app = Flask(__name__)
 app.config['CORS_HEADERS'] = 'Content-Type'
@@ -246,6 +247,44 @@ def getUserDataCSV(userId):
             return response
         else:
             return {'message': "User not found"}, 404
+    except Exception as e:
+        return {'message': str(e)}, 500
+
+@app.route('/api/gensum/db/write', methods=['POST'])
+def handleWritingDataIntoDatabase():
+    try:
+        print('handling writing data into datbase')
+        
+        data = request.get_json()
+        dataset_type = data['dataset_type']
+        userId = data['userId']
+        
+        dataset_path = 'dataset/'
+        
+        if dataset_type == DOMAIN_TYPES["movies"]:
+            dataset_path += 'movie_dataset.csv'
+        elif dataset_type == DOMAIN_TYPES["resturant"]:
+            dataset_path += 'resturant_dataset.csv'
+        elif dataset_type == DOMAIN_TYPES["hotel"]:
+            dataset_path += 'hotel_dataset.csv'
+        elif dataset_type == DOMAIN_TYPES["ecommerce"]:
+            dataset_path += 'ecommerce_dataset.csv'
+        else:
+            return {'message': "Invalid dataset type"}, 400
+
+        dataframe = pd.read_csv(dataset_path)
+        print('completed reading the database')
+        
+        user = db.collection('users').document(userId).get()
+        if user.exists:
+            # using the dataframe, create an array that we can write the data into the database which is the summary and review 
+            
+            # extract 250 rows from the dataframe into an array as an object { summary, review }
+            filtered_data = dataframe[["Summary", "Document"]].to_dict(orient="records")
+            
+            
+            
+        
     except Exception as e:
         return {'message': str(e)}, 500
 
