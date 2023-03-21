@@ -1,5 +1,6 @@
 from cryptography.fernet import Fernet
 
+
 def encrypt_data(data, key):
     """
     Encrypts the given data using the provided secret key.

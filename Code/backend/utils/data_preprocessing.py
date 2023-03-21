@@ -1,7 +1,9 @@
-from typing import Text, Dict, List, Union, Tuple, Optional, Set
-from constants import CHAT_WORDS_STR
 import re
+from typing import Dict, List, Optional, Set, Text, Tuple, Union
+
 import contractions
+from utils.constants import CHAT_WORDS_STR
+
 
 def md_links(text: Text) -> Text:
     markdown_link=re.compile(r'\[.*?\]\(.*?\)')
@@ -41,7 +43,7 @@ def en_contractions(text: Text) -> Text:
                      if word in contractions.contractions_dict else word
                      for word in text.split()])
                      
-def preprocess_dataset(dataset):
+def handle_data_preprocessing(dataset):
     def preprocess_column(col):
         col = md_links(col)
         col = scrape_links(col)
@@ -49,8 +51,9 @@ def preprocess_dataset(dataset):
         col = chat_words_conversion(col)
         return col
 
-    dataset['document'] = dataset['document'].apply(preprocess_column)
+    dataset['review'] = dataset['review'].apply(preprocess_column)
     dataset['summary'] = dataset['summary'].apply(preprocess_column)
+    return dataset
 
 
 

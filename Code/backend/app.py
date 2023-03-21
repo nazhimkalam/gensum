@@ -1,16 +1,17 @@
-from flask_cors import CORS
-from flask_restful import Api
-from flask import Flask, request, make_response
+import csv
+import json
+import os
+
+import firebase_admin
+import pandas as pd
 import requests
 import transformers
-import pandas as pd
-import os
-import csv
-from jsonify import convert
-import json
 from cryptography.fernet import Fernet
-import firebase_admin
-from firebase_admin import firestore, credentials
+from firebase_admin import credentials, firestore
+from flask import Flask, make_response, request
+from flask_cors import CORS
+from flask_restful import Api
+from utils.data_preprocessing import handle_data_preprocessing
 from utils.model_retraining import hyperparameter_serach
 from utils.types import DOMAIN_TYPES
 
@@ -331,27 +332,48 @@ def retrainDomainSpecifcModel():
             else:
                 return {'message': "User not found"}, 404
         print('Successfully fetched data from the database')
-
-
-        # 2. We create another dataframe with the generalized dataset we have and then we append the new data to the dataframe
-        print('Creating the dataframe using the fetched dataset...')
-        # rename the 'review' into 'document' in newReviewSummaryData
+        
+        # 2. Decrypt all the data in the newReviewSummaryData
+        print('Decrypting the fetched data...')
+        decryptedReviewSummaryData = []
+        with open('encryption_key.key', 'rb') as file:
+            key = file.read()
+        fernet = Fernet(key)
+        
         for review in newReviewSummaryData:
-            review['document'] = review.pop('review')
+            summary = review.get('summary')
+            review = review.get('review')
+            
+            decodedSummary = fernet.decrypt(summary).decode()
+            decodedReview = fernet.decrypt(review).decode()
+            
+            decryptedReviewSummaryData.append({
+                'summary': decodedSummary,
+                'review': decodedReview
+            })
+            
 
-        new_df = pd.DataFrame(newReviewSummaryData)
+        # 3. We create another dataframe with the generalized dataset we have and then we append the new data to the dataframe
+        print('Creating the dataframe using the fetched decrypted dataset...')
+        # # rename the 'review' into 'document' in decryptedReviewSummaryData
+        # for review in decryptedReviewSummaryData:
+        #     review['document'] = review.pop('review')
+
+        new_df = pd.DataFrame(decryptedReviewSummaryData)
         # old_df = pd.read_csv(GENERALIZED_DATASET_PATH)
         # combined_df = pd.concat([new_df, old_df], axis=0) 
         print('Successfully created the dataframe')
 
-        # 3. We then perform the necessary preprocessing steps on the data and then we create the dataset
+        # 4. We then perform the necessary preprocessing steps on the data and then we create the dataset
         print('Preprocessing the dataset...')
         # Here we will include the data preprocessing steps taken
+        preprocess_dataset = handle_data_preprocessing(new_df)
+        print(preprocess_dataset.head(5))
         print('Completed data preprocessing')
 
-        # 4. Since the new data is combined with the old data, we can start hyperparameter tuning and model retraining
-        # 5. Once the hyperparameter tuning is done, we can save the model and tokenizer in the respective folder for the given userId
-        # 6. Evaluation results needs to be stored in the database for the given userId and domainType for the model training
+        # 5. Since the new data is combined with the old data, we can start hyperparameter tuning and model retraining
+        # 6. Once the hyperparameter tuning is done, we can save the model and tokenizer in the respective folder for the given userId
+        # 7. Evaluation results needs to be stored in the database for the given userId and domainType for the model training
         print('Performing hyperparameter tuning and model retraining...')
         folder_path = 'model/' + userId
         model_path =  folder_path + '/' + MODEL_NAME
@@ -364,7 +386,9 @@ def retrainDomainSpecifcModel():
         tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_path)
         hyperparameter_serach(new_df, userId, model, tokenizer, db)
 
-        return {'message': "Successfully triggered the model, this will take a while for completion and will automatically update to the latest model", "response": newReviewSummaryData }, 200
+        # return {'message': "Successfully triggered the model, this will take a while for completion and will automatically update to the latest model", "response": newReviewSummaryData }, 200
+        
+        return json.dumps({'message': "Successfully triggered the model, this will take a while for completion and will automatically update to the latest model" }, default=str), 200
     except Exception as e:
         return {'message': str(e)}, 500
 
