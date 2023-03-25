@@ -58,25 +58,26 @@ const Summarizer = () => {
         <Button className="reset-button" onClick={handleReset} disabled={isLoading}> Reset </Button>
       </section>}
 
+      <br />
       {result?.summary && (
         <>
           <div className="detection-result summary">
-            <h3>Initial review:</h3> {result.review}
+            <h3>Initial review:</h3> <p>{result.review}</p>
           </div>
           <br />
           
           <div className="detection-result summary">
-            <h3>Summarized review:</h3> {result.summary}
+            <h3>Summarized review:</h3> <p>{result.summary}</p>
           </div>
           <br />
         
           <div className="detection-result sentiment">
-            <h3>Review sentiment:</h3> {result.sentiement}
+            <h3>Review sentiment:</h3> <p>{result.sentiement}</p>
           </div>
           <br />
 
           <div className="detection-result sentiment">
-            <h3>Review sentiment score:</h3> {result.score}
+            <h3>Review sentiment score:</h3> <p>{Math.round((result.score + Number.EPSILON) * 10000) / 100 + "%"}</p>
           </div>
           <br />
         </>
@@ -98,7 +99,9 @@ const StyledContainer = styled.div`
       object-fit: contain;
       height: 150px;
     }
-
+    p {
+      text-align: justify;
+    }
     textarea {
         padding: 10px;
         border: 1px solid black;
@@ -119,6 +122,7 @@ const StyledContainer = styled.div`
             border: none;
             border-radius: 5px;
             font-size: 16px;
+            width: 150px;
             cursor: pointer;
             &:focus {
                 outline: none;
@@ -127,22 +131,11 @@ const StyledContainer = styled.div`
                 background-color: black;
                 color: #fff;
                 margin-right: 10px;
-
-                &:hover {
-                    background-color: #fff;
-                    color: black;
-                    border: 1px solid black;
-                }
             }
             &.reset-button {
                 background-color: #fff;
                 color: black;
                 border: 1px solid black;
-
-                &:hover {
-                    background-color: black;
-                    color: #fff;
-                }
             }
         }
     }
@@ -152,6 +145,4 @@ const StyledContainer = styled.div`
             margin-bottom: 10px;
         }
     }
-
-
 `;

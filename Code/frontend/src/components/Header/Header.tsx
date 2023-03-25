@@ -1,22 +1,52 @@
 import styled from "styled-components";
-import { Image, Typography, notification } from "antd";
 import { useNavigate } from "react-router-dom";
 import { routePaths } from "../../app/routes";
 import { useDispatch, useSelector } from "react-redux";
 import { auth, db, provider } from "../../firebase/firebase.js";
 import { login, logout, selectUser } from "../../redux/reducers/userReducer";
 import type { MenuProps } from "antd";
-import { Button, Dropdown, Space } from "antd";
+import { Button, Dropdown, Space, Modal, Image, Typography, notification } from "antd";
 import { ArrowDownOutlined } from "@ant-design/icons";
+import { useState } from "react";
+import { postRequest } from "../../utils/requests";
+import { gensumApi } from "../../apis/gensumApi";
 
 const Header = () => {
   const { Title } = Typography;
   const navigate = useNavigate();
   const disptach = useDispatch();
   const user = useSelector(selectUser);
+  
+  const [open, setOpen] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [modalText, setModalText] = useState('Do you want to use data from other businesses of the same domain aswell to retrain the model?');
 
   const triggerNotification = (title: string, message: string) => {
     notification.open({ message: title, description: message, placement: "bottomRight" });
+  };
+
+  const showModal = () => {
+    setOpen(true);
+  };
+
+  const handleOk = () => {
+    setModalText('Requesting for model retrain with other businesses of the same domain aswell...');
+    setConfirmLoading(true);
+    setTimeout(() => {
+      handleModelRetrain(true);
+      setOpen(false);
+      setConfirmLoading(false);
+    }, 2000);
+  };
+
+  const handleCancel = () => {
+    setModalText('Requesting for model retrain only with your business domain...');
+    setConfirmLoading(true);
+    setTimeout(() => {
+      handleModelRetrain(false);
+      setOpen(false);
+      setConfirmLoading(false);
+    }, 2000);
   };
 
   const handleUserLogout = () => {
@@ -91,6 +121,19 @@ const Header = () => {
     },
   ];
 
+  const handleModelRetrain = async (isUseOtherData: boolean) => {
+    const userId = user?.id;
+
+    if (userId) {
+      const apiEndpoint = gensumApi.modelRetraining;
+      const requestBody = {
+        userId, isUseOtherData
+      }
+      await postRequest(apiEndpoint, requestBody);
+      triggerNotification("Success", "Model retraining request has been sent, please wait for the email notification");
+    }
+  }
+
   return (
     <Container>
       <section className="section-one">
@@ -115,7 +158,8 @@ const Header = () => {
         )}
         {user?.id && (
           <Button
-            onClick={() => navigate(routePaths.records)}
+            // onClick={() => navigate(routePaths.records)}
+            onClick={showModal}
             style={{ backgroundColor: "black", color: "white" }}
           >
             Model Retrain
@@ -131,6 +175,15 @@ const Header = () => {
           </Space>
         )}
       </section>
+      <Modal
+        title="Model Retrain"
+        open={open}
+        onOk={handleOk}
+        confirmLoading={confirmLoading}
+        onCancel={handleCancel}
+      >
+        <p>{modalText}</p>
+      </Modal>
     </Container>
   );
 };

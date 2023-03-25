@@ -1,6 +1,8 @@
 import csv
 import json
 import os
+import smtplib
+import ssl
 
 import firebase_admin
 import pandas as pd
@@ -14,6 +16,7 @@ from flask_restful import Api
 from utils.data_preprocessing import handle_data_preprocessing
 from utils.model_retraining import hyperparameter_serach
 from utils.types import DOMAIN_TYPES
+from email.message import EmailMessage
 
 app = Flask(__name__)
 app.config['CORS_HEADERS'] = 'Content-Type'
@@ -21,6 +24,7 @@ CORS(app)
 API = Api(app)
 
 FIREBASE_CREDENTIAL_CERTIFICATE = 'firebase/gensumdb-firebase-adminsdk-twx36-8ad8a7b05c.json'
+EMAIL_SENDER='nazhimkalamfyp@gmail.com'
 MODEL_NAME = 'bart-base_model'
 TOKENIZER_NAME = 'bart-base_tokenizer'
 GENERALIZED_DATASET_PATH = 'dataset/xsum.csv'
@@ -43,6 +47,25 @@ def query(payload):
     response = requests.post(SENTIMENTAL_ANALYSIS_HUGGING_FACE_API_URL, headers=headers, json=payload)
     return response.json()
 
+def triggerEmailNotification(subject, body, email_reciever):
+    email_ = EmailMessage()
+    context = ssl.create_default_context()
+    
+    print("EMAIL_SENDER", EMAIL_SENDER)
+    print("enail_passcode", enail_passcode)
+    
+    with open('email_passcode.key', 'rb') as file:
+        enail_passcode = file.read()
+        
+    email_['From'] = EMAIL_SENDER
+    email_['To'] = email_reciever
+    email_['Subject'] = subject
+    email_.set_content(body)
+    
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+        server.login(EMAIL_SENDER, enail_passcode)
+        server.send_message(email_)
+        
 def getOverallSentimentWithScore(sentiment):
     positiveScore = sentiment[0][0]['score']
     negativeScore = sentiment[0][1]['score']
@@ -309,10 +332,20 @@ def retrainDomainSpecifcModel():
         data = request.get_json()
         newReviewSummaryData = []
 
-        userId = data['userId'] # The user id is only needed to save the model in the respective folder
-        domainType = data['type'] # Using the domainType, we can get all the data from other users which have been given access for retraining
-        isUseOtherData = data['isUseOtherData'] # we can have a radio button in the frontend to select if the user wants to retrain only with their data or with the other users data as well
-
+        # The user id is only needed to save the model in the respective folder
+        userId = data['userId'] 
+        
+        if not db.collection('users').document(userId).get().exists:
+            return {'message': "User not found"}, 404
+        
+        email_receiver = db.collection('users').document(userId).get().to_dict()['email']
+        
+        # Using the domainType, we can get all the data from other users which have been given access for retraining
+        domainType = db.collection('users').document(userId).get().to_dict()['type']
+        # we can have a radio button in the frontend to select if the user wants to retrain only with their data or with the other users data as well
+        isUseOtherData = data['isUseOtherData']
+        triggerEmailNotification("Retraining the model", "The model is being retrained, you will be notified once the model is retrained", email_receiver)
+        
         # Steps to be considered for retraining the model and dataset recreation
         # 1. By checking the isAccessible flag, we can decide whether to use the data for model retraining, then we get all the data from the database which isAccessible = true for the given domainType
         print('Fetching data from the database...')
@@ -351,7 +384,6 @@ def retrainDomainSpecifcModel():
                 'summary': decodedSummary,
                 'review': decodedReview
             })
-            
 
         # 3. We create another dataframe with the generalized dataset we have and then we append the new data to the dataframe
         print('Creating the dataframe using the fetched decrypted dataset...')
@@ -385,10 +417,8 @@ def retrainDomainSpecifcModel():
         model = transformers.AutoModelForSeq2SeqLM.from_pretrained(model_path)
         tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_path)
         hyperparameter_serach(new_df, userId, model, tokenizer, db)
+        triggerEmailNotification("Model retrained", "The model has been retrained, you can now use the model for summarization", email_receiver)
 
-        # return {'message': "Successfully triggered the model, this will take a while for completion and will automatically update to the latest model", "response": newReviewSummaryData }, 200
-        
-        return json.dumps({'message': "Successfully triggered the model, this will take a while for completion and will automatically update to the latest model" }, default=str), 200
     except Exception as e:
         return {'message': str(e)}, 500
 

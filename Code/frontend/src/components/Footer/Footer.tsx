@@ -28,7 +28,7 @@ const FooterStyled = styled.div`
 
   a {
     color: #fff;
-    text-decoration: none;
+    text-decoration: none !important;
   }
 
   a:hover {
