@@ -10,6 +10,7 @@ import { ArrowDownOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import { postRequest } from "../../utils/requests";
 import { gensumApi } from "../../apis/gensumApi";
+import { domainModelInitilization } from "../../services/gensum.service";
 
 const Header = () => {
   const { Title } = Typography;
@@ -18,8 +19,8 @@ const Header = () => {
   const user = useSelector(selectUser);
   
   const [open, setOpen] = useState(false);
-  const [confirmLoading, setConfirmLoading] = useState(false);
-  const [modalText, setModalText] = useState('Do you want to use data from other businesses of the same domain aswell to retrain the model?');
+  const [loading, setLoading] = useState(false);
+  const [modalText] = useState('Select if you want to retrain the model other business common domain data aswell or only with your business domain data...');
 
   const triggerNotification = (title: string, message: string) => {
     notification.open({ message: title, description: message, placement: "bottomRight" });
@@ -30,23 +31,15 @@ const Header = () => {
   };
 
   const handleOk = () => {
-    setModalText('Requesting for model retrain with other businesses of the same domain aswell...');
-    setConfirmLoading(true);
+    setLoading(true);
     setTimeout(() => {
-      handleModelRetrain(true);
+      setLoading(false);
       setOpen(false);
-      setConfirmLoading(false);
-    }, 2000);
+    }, 3000);
   };
 
   const handleCancel = () => {
-    setModalText('Requesting for model retrain only with your business domain...');
-    setConfirmLoading(true);
-    setTimeout(() => {
-      handleModelRetrain(false);
-      setOpen(false);
-      setConfirmLoading(false);
-    }, 2000);
+    setOpen(false);
   };
 
   const handleUserLogout = () => {
@@ -60,11 +53,11 @@ const Header = () => {
     navigate(routePaths.home);
   };
 
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
     auth
       .signInWithPopup(provider)
       .then((result: any) => {
-        db.collection("users").doc(result.user.uid).get().then((doc: any) => {
+        db.collection("users").doc(result.user.uid).get().then(async(doc: any) => {
             if (doc.exists) {
               console.log("User already exists");
             } else {
@@ -77,6 +70,7 @@ const Header = () => {
               });
 
               console.log("User created");
+              await domainModelInitilization(result.user.uid);
             }
           })
           .catch((error: any) => {
@@ -176,11 +170,27 @@ const Header = () => {
         )}
       </section>
       <Modal
-        title="Model Retrain"
         open={open}
+        title="Model Retrain"
         onOk={handleOk}
-        confirmLoading={confirmLoading}
         onCancel={handleCancel}
+        footer={[
+          <Button key="use-other-data" onClick={() => {
+            handleModelRetrain(true);
+            setOpen(false);
+          }}>
+            All businesses data
+          </Button>,
+          <Button key="use-my-data" type="primary" loading={loading} onClick={() => {
+            handleModelRetrain(false);
+            setOpen(false);
+          }}>
+            My business data
+        </Button>,
+        <Button key="back" type="link" onClick={handleCancel}>
+          Cancel 
+        </Button>,
+         ]}
       >
         <p>{modalText}</p>
       </Modal>

@@ -22,3 +22,14 @@ export const triggerModelRetrain = async (userId: string, type: number, isUseOth
     .catch((error) => {
       throw error;
     });
+
+export const domainModelInitilization = async (userId: string) =>
+    await postRequest(`${gensumApi.domainProfileCreation}`, {userId})
+      .then((response) => {
+        if (response.status === 200 || response.status === 201)
+          return response.data;
+        throw response;
+      })
+      .catch((error) => {
+        throw error;
+      });

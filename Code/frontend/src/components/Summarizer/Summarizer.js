@@ -77,7 +77,7 @@ const Summarizer = () => {
           <br />
 
           <div className="detection-result sentiment">
-            <h3>Review sentiment score:</h3> <p>{Math.round((result.score + Number.EPSILON) * 10000) / 100 + "%"}</p>
+            <h3>Review sentiment score:</h3> <p>{Math.round((result.score) * 10000) / 100 + "%"}</p>
           </div>
           <br />
         </>

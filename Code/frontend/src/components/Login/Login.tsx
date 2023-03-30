@@ -3,6 +3,7 @@ import { useDispatch } from "react-redux";
 import { auth, db, provider } from "../../firebase/firebase.js";
 import { login } from "../../redux/reducers/userReducer";
 import { notification } from "antd";
+import { domainModelInitilization } from "../../services/gensum.service";
 
 const Login = () => {
   const disptach = useDispatch();
@@ -10,14 +11,14 @@ const Login = () => {
     notification.open({ message: title, description: message, placement: "bottomRight" });
   };
 
-  const onHandleLogin = () => {
+  const onHandleLogin = async () => {
     auth
     .signInWithPopup(provider)
     .then((result: any) => {
       db.collection("users")
         .doc(result.user.uid)
         .get()
-        .then((doc: any) => {
+        .then(async(doc: any) => {
           if (doc.exists) {
             console.log("User already exists");
           } else {
@@ -28,7 +29,8 @@ const Login = () => {
               isAccessible: false,
             });
 
-            console.log("User created");
+            console.log("User created from login component");
+            await domainModelInitilization(result.user.uid);
           }
         })
         .catch((error: any) => {

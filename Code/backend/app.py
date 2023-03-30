@@ -138,6 +138,8 @@ def createDomainUserProfile():
     try:
         data = request.get_json()
         userId = data['userId']
+        
+        print('user id', userId)
 
         folder_path = 'model/' + userId
         model_path =  folder_path + '/' + MODEL_NAME
