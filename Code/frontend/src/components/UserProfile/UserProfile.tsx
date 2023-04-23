@@ -81,7 +81,9 @@ const UserProfile = () => {
   return (
     <StyledContainer>
       <Form>
-        <Title level={2}>User Profile</Title>
+        <Title level={2} 
+        style={{color: '#880ED4'}}
+        >User Profile</Title>
         <br />
         <Form.Item className="form-item" label="Username">
           <Input
@@ -154,8 +156,8 @@ const StyledContainer = styled.div`
     }
 
     button {
-      border: 1px black solid;
-      color: black;
+      border: 1px #880ed4 solid;
+      color: #880ed4;
     }
   }
 `;

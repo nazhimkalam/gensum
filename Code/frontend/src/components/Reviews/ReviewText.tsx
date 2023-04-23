@@ -72,8 +72,8 @@ const StyledContainer = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: end;
-  box-shadow: 0 1px 3px 0 rgba(60, 64, 67, 0.3),
-    0 4px 8px 3px rgba(60, 64, 67, 0.15);
+  box-shadow: 0 1px 3px 0 rgba(178, 75, 244, 0.3),
+    0 4px 8px 3px rgba(178, 75, 244, 0.15);
 
   > section {
     margin: 0 1pc;

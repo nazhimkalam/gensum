@@ -144,7 +144,7 @@ const Header = () => {
       <section className="section-two">
         {!user?.id && (
           <Button
-            style={{ backgroundColor: "black", color: "white" }}
+            style={{ backgroundColor: "#880ED4", color: "white" }}
             onClick={() => handleSignIn()}
           >
             Sign In
@@ -154,7 +154,7 @@ const Header = () => {
           <Button
             // onClick={() => navigate(routePaths.records)}
             onClick={showModal}
-            style={{ backgroundColor: "black", color: "white" }}
+            style={{ backgroundColor: "#880ED4", color: "white" }}
           >
             Model Retrain
           </Button>
@@ -163,7 +163,7 @@ const Header = () => {
           <Space direction="vertical">
             <Space wrap>
               <Dropdown menu={{ items }} placement="bottom">
-                <Button style={{ border: "1px black solid" }}>My Profile <ArrowDownOutlined /></Button>
+                <Button style={{ border: "1px #880ED4 solid" }}>My Profile <ArrowDownOutlined /></Button>
               </Dropdown>
             </Space>
           </Space>
@@ -205,7 +205,7 @@ const Container = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 0px 5vw;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  box-shadow: 0 1px 3px rgba(178, 75, 244, 0.12), 0 1px 2px rgba(178, 75, 244, 0.24);
 
   .section-two {
     display: flex;
@@ -217,7 +217,7 @@ const Container = styled.div`
       height: 40px;
 
       &:hover {
-        background-color: black;
+        background-color: #880ED4;
         color: white;
       }
     }
