@@ -26,6 +26,7 @@ const Summarizer = () => {
       triggerNotification("Error", "Please enter text to scan");
       return;
     }
+    setResult(undefined);
     setIsLoading(true);
 
     const apiEndpoint =
