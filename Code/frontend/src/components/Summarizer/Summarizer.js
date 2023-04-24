@@ -73,7 +73,7 @@ const Summarizer = () => {
           placeholder="Enter review here..."
         />
       ) : (
-        <img src="images/loader.gif" alt="loading" />
+        <img src="images/loading.gif" alt="loading" />
       )}
       {!isLoading && (
         <section className="buttons">
@@ -134,6 +134,15 @@ const StyledContainer = styled.div`
   margin: 0 5vw;
   padding: 20px;
 
+  transform: translateY(-250%);
+  animation: slideIn 0.5s forwards;
+  
+  @keyframes slideIn {
+    100% {
+      transform: translateY(0%);
+    }
+  }
+
   img {
     object-fit: contain;
     height: 150px;
@@ -146,7 +155,7 @@ const StyledContainer = styled.div`
     border: 1px solid #880ed4;
     border-radius: 5px;
     resize: none;
-    box-shadow: 0 0 8px 0 rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.3);
     font-size: 16px;
     &:focus {
       outline: none;
@@ -158,7 +167,7 @@ const StyledContainer = styled.div`
     justify-content: center;
     margin: 20px 0;
     button {
-      box-shadow: 0 0 8px 0 rgba(0, 0, 0, 0.3);
+      box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.2);
       height: 40px;
       border: none;
       border-radius: 5px;

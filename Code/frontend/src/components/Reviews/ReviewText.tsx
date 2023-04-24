@@ -68,6 +68,16 @@ export default ReviewText;
 const StyledContainer = styled.div`
   margin: 2pc 0;
   padding: 1pc 0;
+  border-radius: 1rem;
+
+  transform: translateY(200%);
+  animation: slideIn 0.5s forwards;
+  
+  @keyframes slideIn {
+    100% {
+      transform: translateY(0%);
+    }
+  }
 
   display: flex;
   justify-content: space-between;
@@ -80,6 +90,9 @@ const StyledContainer = styled.div`
 
     > h1 {
       margin: 1pc 0;
+      text-transform: uppercase;
+      font-weight: bold;
+      letter-spacing: 0.03em;
     }
 
     > p {
@@ -92,8 +105,14 @@ const StyledContainer = styled.div`
       padding: 0.5pc 1pc;
       border: 1px solid red;
       background-color: red;
+      box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.2);
       cursor: pointer;
+      border-radius: 0.5rem;
       color: white;
+
+      text-transform: uppercase;
+      font-weight: bold;
+      letter-spacing: 0.03em;
 
       &:hover {
         background-color: white;

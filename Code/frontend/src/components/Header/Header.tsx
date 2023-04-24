@@ -205,7 +205,21 @@ const Container = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 0px 5vw;
-  box-shadow: 0 1px 3px rgba(178, 75, 244, 0.12), 0 1px 2px rgba(178, 75, 244, 0.24);
+  box-shadow: 0 1px 3px rgba(178, 75, 244, 0.22), 0 1px 2px rgba(178, 75, 244, 0.42);
+
+  opacity: 0;
+  animation: fadeIn ease-in 1;
+  animation-fill-mode: forwards;
+  animation-duration: 0.5s;
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
 
   .section-two {
     display: flex;
@@ -215,6 +229,7 @@ const Container = styled.div`
     button {
       margin-left: 10px;
       height: 40px;
+      border-radius: 0.5rem;
 
       &:hover {
         background-color: #880ED4;

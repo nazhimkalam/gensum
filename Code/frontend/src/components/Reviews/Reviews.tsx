@@ -74,7 +74,7 @@ const Reviews = () => {
 
       <section>
         {isLoading ? (
-          <p>Loading...</p>
+          <img src="images/loading.gif" alt="loading" />
         ) : (
           reviews.map((review, index) => (
             <ReviewText key={index} details={review} setDeletedReviewId={setDeletedReviewId}/>
@@ -90,11 +90,23 @@ export default Reviews;
 const StyledContainer = styled.div`
   margin: 1pc 5vw;
   padding: 1pc;
+  // height: 100vh;
 
-  > h1 {
-    margin: 1pc 0;
+  img {
+    object-fit: contain;
+    width: 8vw;
+    display: flex;
+    margin: 5pc auto;
   }
 
+  h1 {
+    margin: 1pc 0;
+    color: #880ED4 !important;
+    text-transform: uppercase;
+    font-weight: bold;
+    letter-spacing: 0.03em;
+  }
+  
   > section {
     margin: 1pc 0;
 
@@ -104,6 +116,8 @@ const StyledContainer = styled.div`
 
       > button {
         margin: 0;
+        box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.2);
+        border-radius: 0.5rem;
       }
     }
   }

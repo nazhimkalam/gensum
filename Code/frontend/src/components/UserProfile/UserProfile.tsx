@@ -143,6 +143,15 @@ export default UserProfile;
 
 const StyledContainer = styled.div`
   margin: 1pc 10vw;
+  
+  transform: translateY(200%);
+  animation: slideIn 0.5s forwards;
+  
+  @keyframes slideIn {
+    100% {
+      transform: translateY(0%);
+    }
+  }
 
   > form {
     margin: 5pc 0;

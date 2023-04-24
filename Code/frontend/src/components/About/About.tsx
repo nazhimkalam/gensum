@@ -43,6 +43,15 @@ const StyledContainer = styled.div`
   margin-top: 2rem;
   padding: 2rem;
 
+  transform: translateX(-100%);
+  animation: slideIn 0.5s forwards;
+  
+  @keyframes slideIn {
+    100% {
+      transform: translateX(0%);
+    }
+  }
+
   h2 {
     font-size: 2rem;
     margin-bottom: 1rem;
