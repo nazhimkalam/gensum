@@ -90,13 +90,12 @@ export default Reviews;
 const StyledContainer = styled.div`
   margin: 1pc 5vw;
   padding: 1pc;
-  // height: 100vh;
 
   img {
     object-fit: contain;
     width: 8vw;
     display: flex;
-    margin: 5pc auto;
+    margin: 15vw auto;
   }
 
   h1 {
