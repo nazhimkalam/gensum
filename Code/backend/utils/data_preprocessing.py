@@ -48,7 +48,6 @@ def handle_data_preprocessing(dataset):
         col = md_links(col)
         col = scrape_links(col)
         col = remove_html_tags(col)
-        col = chat_words_conversion(col)
         return col
 
     dataset['review'] = dataset['review'].apply(preprocess_column)

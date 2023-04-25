@@ -424,7 +424,8 @@ def retrainDomainSpecifcModel():
 
         model = transformers.AutoModelForSeq2SeqLM.from_pretrained(model_path)
         tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_path)
-        hyperparameter_serach(new_df, userId, model, tokenizer, db)
+        hyperparameter_serach(preprocess_dataset, userId, model, tokenizer, db)
+        # hyperparameter_serach(new_df, userId, model, tokenizer, db)
         triggerEmailNotification("Model retrained", "The model has been retrained, you can now use the model for summarization", email_receiver)
 
     except Exception as e:
