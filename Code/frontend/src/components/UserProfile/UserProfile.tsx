@@ -49,7 +49,7 @@ const UserProfile = () => {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [user]);
+  }, [user, navigate]);
 
   const handleFormSubmit = (e: any) => {
     e.preventDefault();
