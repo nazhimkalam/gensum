@@ -147,6 +147,7 @@ const StyledContainer = styled.div`
   img {
     object-fit: contain;
     height: 150px;
+    margin: 5pc auto;
   }
   p {
     text-align: justify;

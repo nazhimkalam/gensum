@@ -33,7 +33,7 @@ GENERALIZED_TOKENIZER_PATH = 'model/base/' + TOKENIZER_NAME
 MAX_INPUT = 512
 
 HUGGING_FACE_BEARER_TOKEN = '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'
-SENTIMENTAL_ANALYSIS_HUGGING_FACE_API_URL = "https://api-inference.huggingface.co/models/distilbert-base-uncased-finetuned-sst-2-english"
+SENTIMENTAL_ANALYSIS_HUGGING_FACE_API_URL = "https://api-inference.huggingface.co/models/cardiffnlp/twitter-roberta-base-sentiment"
 
 generalized_model = transformers.AutoModelForSeq2SeqLM.from_pretrained(GENERALIZED_MODEL_PATH)
 generalized_tokenizer = transformers.AutoTokenizer.from_pretrained(GENERALIZED_TOKENIZER_PATH)
@@ -51,9 +51,6 @@ def triggerEmailNotification(subject, body, email_reciever):
     email_ = EmailMessage()
     context = ssl.create_default_context()
     
-    print("EMAIL_SENDER", EMAIL_SENDER)
-    print("enail_passcode", enail_passcode)
-    
     with open('email_passcode.key', 'rb') as file:
         enail_passcode = file.read()
         
@@ -67,12 +64,23 @@ def triggerEmailNotification(subject, body, email_reciever):
         server.send_message(email_)
         
 def getOverallSentimentWithScore(sentiment):
-    positiveScore = sentiment[0][0]['score']
-    negativeScore = sentiment[0][1]['score']
-    if positiveScore > negativeScore:
+    # LABEL_0 = 'Negative'
+    # LABEL_1 = 'Neutral'
+    # LABEL_2 = 'Positive'
+    
+    negativeScore = sentiment[0][0]['score']
+    neutralScore = sentiment[0][1]['score']
+    positiveScore = sentiment[0][2]['score']
+    
+    if negativeScore > neutralScore and negativeScore > positiveScore:
+        return 'Negative', negativeScore
+    elif neutralScore > negativeScore and neutralScore > positiveScore:
+        return 'Neutral', neutralScore
+    elif positiveScore > negativeScore and positiveScore > neutralScore:
         return 'Positive', positiveScore
     else:
-        return 'Negative', negativeScore
+        return 'Neutral', neutralScore
+    
                 
 @app.route('/', methods=['GET'])
 def hello_world():
@@ -139,8 +147,6 @@ def createDomainUserProfile():
         data = request.get_json()
         userId = data['userId']
         
-        print('user id', userId)
-
         folder_path = 'model/' + userId
         model_path =  folder_path + '/' + MODEL_NAME
         tokenizer_path = folder_path + '/' + TOKENIZER_NAME
@@ -402,7 +408,7 @@ def retrainDomainSpecifcModel():
         print('Preprocessing the dataset...')
         # Here we will include the data preprocessing steps taken
         preprocess_dataset = handle_data_preprocessing(new_df)
-        print(preprocess_dataset.head(5))
+        # print(preprocess_dataset.head(5))
         print('Completed data preprocessing')
 
         # 5. Since the new data is combined with the old data, we can start hyperparameter tuning and model retraining
