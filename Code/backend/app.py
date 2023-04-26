@@ -3,31 +3,35 @@ import json
 import os
 import smtplib
 import ssl
+from email.message import EmailMessage
 
 import firebase_admin
 import pandas as pd
 import requests
 import transformers
 from cryptography.fernet import Fernet
+from dotenv import load_dotenv
 from firebase_admin import credentials, firestore
-from flask import Flask, make_response, request
+from flask import Flask, jsonify, make_response, request
 from flask_cors import CORS
 from flask_restful import Api
 from utils.data_preprocessing import handle_data_preprocessing
 from utils.model_retraining import hyperparameter_serach
 from utils.types import DOMAIN_TYPES
-from email.message import EmailMessage
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 app.config['CORS_HEADERS'] = 'Content-Type'
 CORS(app)
 API = Api(app)
 
-FIREBASE_CREDENTIAL_CERTIFICATE = 'firebase/gensumdb-firebase-adminsdk-twx36-8ad8a7b05c.json'
-EMAIL_SENDER='nazhimkalamfyp@gmail.com'
+FIREBASE_CREDENTIAL_CERTIFICATE = os.getenv('FIREBASE_CREDENTIAL_CERTIFICATE')
+EMAIL_SENDER=os.getenv('EMAIL_SENDER')
+EMAIL_PASSCODE=os.getenv('EMAIL_PASSCODE')
 MODEL_NAME = 'bart-base_model'
 TOKENIZER_NAME = 'bart-base_tokenizer'
-GENERALIZED_DATASET_PATH = 'dataset/xsum.csv'
 GENERALIZED_MODEL_PATH = 'model/base/' + MODEL_NAME
 GENERALIZED_TOKENIZER_PATH = 'model/base/' + TOKENIZER_NAME
 MAX_INPUT = 512
@@ -51,16 +55,13 @@ def triggerEmailNotification(subject, body, email_reciever):
     email_ = EmailMessage()
     context = ssl.create_default_context()
     
-    with open('email_passcode.key', 'rb') as file:
-        enail_passcode = file.read()
-        
     email_['From'] = EMAIL_SENDER
     email_['To'] = email_reciever
     email_['Subject'] = subject
     email_.set_content(body)
     
     with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
-        server.login(EMAIL_SENDER, enail_passcode)
+        server.login(EMAIL_SENDER, EMAIL_PASSCODE)
         server.send_message(email_)
         
 def getOverallSentimentWithScore(sentiment):
@@ -132,7 +133,7 @@ def getUserData(userId):
                     'summary': decodedSummary,
                     'review': decodedReview,
                     'sentiment': decodedSentiment,
-                    'score': decodedScore,
+                    'score': float(decodedScore)*100,
                     'createdAt': review.get('createdAt')
                 })
             return user, 200
@@ -276,6 +277,15 @@ def getUserDataCSV(userId):
             response = make_response(csv_data)
             response.headers['Content-Type'] = 'text/csv'
             response.headers['Content-Disposition'] = 'attachment; filename=user_reviews.csv'
+            
+            # Delete the CSV file
+            try:
+                file_path = 'user_reviews.csv'
+                os.remove(file_path)
+                print(f"{file_path} has been successfully deleted.")
+            except OSError as e:
+                print(f"Error deleting {file_path}: {e.strerror}")
+            
             return response
         else:
             return {'message': "User not found"}, 404
@@ -343,16 +353,25 @@ def retrainDomainSpecifcModel():
         # The user id is only needed to save the model in the respective folder
         userId = data['userId'] 
         
+        print('Finding user from database...')
         if not db.collection('users').document(userId).get().exists:
             return {'message': "User not found"}, 404
         
-        email_receiver = db.collection('users').document(userId).get().to_dict()['email']
+        userMetadata = db.collection('users').document(userId).get().to_dict()
+        print('Get user metadata...', userMetadata)
+        
+        print('Getting receiver email...')
+        email_receiver = userMetadata['email']
         
         # Using the domainType, we can get all the data from other users which have been given access for retraining
-        domainType = db.collection('users').document(userId).get().to_dict()['type']
+        print('Getting domain type...')
+        domainType = userMetadata['type']
+        
         # we can have a radio button in the frontend to select if the user wants to retrain only with their data or with the other users data as well
         isUseOtherData = data['isUseOtherData']
-        triggerEmailNotification("Retraining the model", "The model is being retrained, you will be notified once the model is retrained", email_receiver)
+        print('Email trigger for retraining the model...')
+        triggerEmailNotification("Retraining the gensum model", "Your model is preparing for retraining, you will be notified once the model is retrained", email_receiver)
+        print('Notification sent to the user...')
         
         # Steps to be considered for retraining the model and dataset recreation
         # 1. By checking the isAccessible flag, we can decide whether to use the data for model retraining, then we get all the data from the database which isAccessible = true for the given domainType
@@ -395,23 +414,15 @@ def retrainDomainSpecifcModel():
 
         # 3. We create another dataframe with the generalized dataset we have and then we append the new data to the dataframe
         print('Creating the dataframe using the fetched decrypted dataset...')
-        # # rename the 'review' into 'document' in decryptedReviewSummaryData
-        # for review in decryptedReviewSummaryData:
-        #     review['document'] = review.pop('review')
-
         new_df = pd.DataFrame(decryptedReviewSummaryData)
-        # old_df = pd.read_csv(GENERALIZED_DATASET_PATH)
-        # combined_df = pd.concat([new_df, old_df], axis=0) 
         print('Successfully created the dataframe')
 
         # 4. We then perform the necessary preprocessing steps on the data and then we create the dataset
         print('Preprocessing the dataset...')
-        # Here we will include the data preprocessing steps taken
         preprocess_dataset = handle_data_preprocessing(new_df)
-        # print(preprocess_dataset.head(5))
         print('Completed data preprocessing')
 
-        # 5. Since the new data is combined with the old data, we can start hyperparameter tuning and model retraining
+        # 5. We can start hyperparameter tuning and model retraining
         # 6. Once the hyperparameter tuning is done, we can save the model and tokenizer in the respective folder for the given userId
         # 7. Evaluation results needs to be stored in the database for the given userId and domainType for the model training
         print('Performing hyperparameter tuning and model retraining...')
@@ -424,9 +435,13 @@ def retrainDomainSpecifcModel():
 
         model = transformers.AutoModelForSeq2SeqLM.from_pretrained(model_path)
         tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_path)
+        
+        print('preprocess_dataset content', preprocess_dataset)
         hyperparameter_serach(preprocess_dataset, userId, model, tokenizer, db)
-        # hyperparameter_serach(new_df, userId, model, tokenizer, db)
+        print('completed model retraining...')
+        
         triggerEmailNotification("Model retrained", "The model has been retrained, you can now use the model for summarization", email_receiver)
+        return jsonify({'message': 'Success!'}), 200
 
     except Exception as e:
         return {'message': str(e)}, 500

@@ -111,12 +111,12 @@ def hyperparameter_serach(newData, userId, model, tokenizer, db):
     per_device_eval_batch_size = study.best_params['per_device_eval_batch_size']
     
     hyperparameters = {
-        learning_rate: learning_rate,
-        weight_decay: weight_decay,
-        num_train_epochs: num_train_epochs,
-        warmup_ratio: warmup_ratio,
-        per_device_train_batch_size: per_device_train_batch_size,
-        per_device_eval_batch_size: per_device_eval_batch_size
+        "learning_rate": learning_rate,
+        "weight_decay": weight_decay,
+        "num_train_epochs": num_train_epochs,
+        "warmup_ratio": warmup_ratio,
+        "per_device_train_batch_size": per_device_train_batch_size,
+        "per_device_eval_batch_size": per_device_eval_batch_size
     }
     
     model_retraining(hyperparameters, model, tokenizer, tokenize_data, data_collator, metric, db, userId)
