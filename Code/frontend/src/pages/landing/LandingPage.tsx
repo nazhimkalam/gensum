@@ -4,6 +4,7 @@ import Footer from "../../components/Footer/Footer";
 import Header from "../../components/Header/Header";
 import HowItWorks from "../../components/HowItWorks/HowItWorks";
 import Summarizer from "../../components/Summarizer/Summarizer";
+import ScrollToTop from "react-scroll-to-top";
 
 const LandingPage = () => {
   return (
@@ -12,6 +13,7 @@ const LandingPage = () => {
       <About />
       <HowItWorks />
       <Summarizer />
+      <ScrollToTop smooth />
       <Footer />
     </StyledContainer>
   );

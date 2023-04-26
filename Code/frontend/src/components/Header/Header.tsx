@@ -205,7 +205,8 @@ const Container = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 0px 5vw;
-  box-shadow: 0 1px 3px rgba(178, 75, 244, 0.22), 0 1px 2px rgba(178, 75, 244, 0.42);
+  box-shadow: 0 2px 6px rgba(178, 75, 244, 0.22), 0 2px 4px rgba(178, 75, 244, 0.42);
+  border-bottom: 1px solid #880ED4;
 
   opacity: 0;
   animation: fadeIn ease-in 1;

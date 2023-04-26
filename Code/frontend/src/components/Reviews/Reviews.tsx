@@ -56,7 +56,7 @@ const Reviews = () => {
         const blob = new Blob([res.data], { type: "text/csv" });
         const link = document.createElement("a");
         link.href = window.URL.createObjectURL(blob);
-        link.download = "reviews.csv";
+        link.download = `reviews_${new Date().toLocaleDateString()}.csv`;
         link.click();
       }
     ).catch(
@@ -80,6 +80,7 @@ const Reviews = () => {
             <ReviewText key={index} details={review} setDeletedReviewId={setDeletedReviewId}/>
           ))
         )}
+        {!isLoading && reviews.length < 2 && <div className="breaker"></div>}
       </section>
     </StyledContainer>
   );
@@ -96,6 +97,10 @@ const StyledContainer = styled.div`
     width: 8vw;
     display: flex;
     margin: 15vw auto;
+  }
+
+  .breaker {
+    margin-bottom: 60vh;
   }
 
   h1 {

@@ -22,6 +22,8 @@ const FooterStyled = styled.div`
   color: #fff;
   text-align: center;
   margin-top: 2rem;
+  padding: 3rem 0 !important; 
+
   p {
     margin: 0 5vw;
   }
