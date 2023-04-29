@@ -12,7 +12,7 @@ const About = () => {
           </p>
 
           <p>
-          Initially, the model is designed to be adaptable to any domain and will improve its performance as it is used. Users can also retrain the model with their own data and automated hyperparameter tuning will be conducted during the retraining process. This enables the model to adapt to new domains and improve its performance.
+          Initially, the model is designed to be adaptable to any domain and will improve its performance as it is used. Users can also retrain the model with their own data and automated hyperparameter tuning & model customization will be conducted during the retraining process. This enables the model to adapt to new domains and improve its performance.
           </p>
 
           <p>
