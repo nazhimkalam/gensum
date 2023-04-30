@@ -16,7 +16,7 @@ from flask import Flask, jsonify, make_response, request
 from flask_cors import CORS
 from flask_restful import Api
 from utils.data_preprocessing import handle_data_preprocessing
-from utils.model_retraining import hyperparameter_serach
+from utils.model_retraining import model_customization
 from utils.types import DOMAIN_TYPES
 
 # Load environment variables from .env file
@@ -422,10 +422,8 @@ def retrainDomainSpecifcModel():
         preprocess_dataset = handle_data_preprocessing(new_df)
         print('Completed data preprocessing')
 
-        # 5. We can start hyperparameter tuning and model retraining
-        # 6. Once the hyperparameter tuning is done, we can save the model and tokenizer in the respective folder for the given userId
-        # 7. Evaluation results needs to be stored in the database for the given userId and domainType for the model training
-        print('Performing hyperparameter tuning and model retraining...')
+        # 5. We can start model customization and hyperparameter tuning and model retraining
+        print('Performing model customization and hyperparameter tuning and model retraining...')
         folder_path = 'model/' + userId
         model_path =  folder_path + '/' + MODEL_NAME
         tokenizer_path = folder_path + '/' + TOKENIZER_NAME
@@ -433,11 +431,11 @@ def retrainDomainSpecifcModel():
         if not os.path.exists(folder_path):
             return {'message': "Model not found"}, 404
 
-        model = transformers.AutoModelForSeq2SeqLM.from_pretrained(model_path)
+        # model = transformers.AutoModelForSeq2SeqLM.from_pretrained(model_path)
         tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_path)
         
         print('preprocess_dataset content', preprocess_dataset)
-        hyperparameter_serach(preprocess_dataset, userId, model, tokenizer, db)
+        model_customization(preprocess_dataset, userId, model_path, tokenizer, db)
         print('completed model retraining...')
         
         triggerEmailNotification("Model retrained", "The model has been retrained, you can now use the model for summarization", email_receiver)

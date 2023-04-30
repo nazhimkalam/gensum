@@ -8,6 +8,7 @@ import torch
 import transformers
 from datasets import load_metric
 from transformers import Seq2SeqTrainer, Seq2SeqTrainingArguments
+from transformers import AutoConfig, AutoModelForSeq2SeqLM
 
 LR_MIN = 4e-5
 LR_CEIL = 0.01
@@ -31,7 +32,7 @@ def print_custom(text):
     print(text)
     print('-'*100)
 
-def hyperparameter_serach(newData, userId, model, tokenizer, db):
+def model_customization(newData, userId, model_path, tokenizer, db):
     # note that we will be takening the model and tokenizer which is equal to the userId and train it on the new dataset
     # and then we will be saving the model and tokenizer in the same folder as the userId
     # and then we will be returning the model and tokenizer
@@ -56,10 +57,27 @@ def hyperparameter_serach(newData, userId, model, tokenizer, db):
     tokenize_data = data.map(preprocess_data, batched = True, remove_columns=['review', 'summary'])
     print("printing tokenized data: ", tokenize_data)
     
-    data_collator = transformers.DataCollatorForSeq2Seq(tokenizer, model=model)
-    
     print_custom('Performing hyperparameter training....')
     def objective(trial: optuna.Trial):
+        # Load the base configuration for BART
+        config = AutoConfig.from_pretrained(model_path)
+        
+        # Set the decoder parameters to values suggested by Optuna
+        config.decoder_attention_heads = trial.suggest_categorical('decoder_attention_heads', [2, 3, 4, 6, 8, 12, 16])
+        config.decoder_ffn_dim = trial.suggest_int('decoder_ffn_dim', 1024, 4096)
+        config.decoder_layerdrop = trial.suggest_uniform('decoder_layerdrop', 0.0, 0.3)
+        config.decoder_layers = trial.suggest_int('decoder_layers', 4, 12)
+        config.decoder_start_token_id = 1
+        
+        # Ensure that embed_dim is divisible by decoder_attention_heads
+        if config.d_model % config.decoder_attention_heads != 0:
+            config.decoder_attention_heads = config.d_model // 64
+        
+        # Instantiate the model with the modified configuration
+        model = AutoModelForSeq2SeqLM.from_pretrained(model_path, config=config)
+        data_collator = transformers.DataCollatorForSeq2Seq(tokenizer, model=model)
+        
+        # Specify the training arguments and hyperparameter tune every arguments which are possible to tune
         training_args = Seq2SeqTrainingArguments(
             output_dir=SAVE_DIR,
             save_strategy="epoch",
@@ -77,6 +95,8 @@ def hyperparameter_serach(newData, userId, model, tokenizer, db):
             run_name=MODEL_NAME,
             report_to="none",
         )
+        
+        # Create the trainer
         trainer = Seq2SeqTrainer(
             model=model,
             args=training_args,
@@ -103,12 +123,30 @@ def hyperparameter_serach(newData, userId, model, tokenizer, db):
     print_custom('Printing the best parameters')
     print(study.best_params)
     
-    learning_rate = study.best_params['learning_rate']
+    # Decoder-related hyperparameters:
+    decoder_attention_heads = study.best_params['decoder_attention_heads']
+    decoder_layerdrop = study.best_params['decoder_layerdrop']
+    decoder_ffn_dim = study.best_params['decoder_ffn_dim']
+    decoder_layers = study.best_params['decoder_layers']
+
+    # Training-related hyperparameters:
     weight_decay = study.best_params['weight_decay']
-    num_train_epochs = study.best_params['num_train_epochs']
     warmup_ratio = study.best_params['warmup_ratio']
+    learning_rate = study.best_params['learning_rate']
+    num_train_epochs = study.best_params['num_train_epochs']
     per_device_train_batch_size = study.best_params['per_device_train_batch_size']
     per_device_eval_batch_size = study.best_params['per_device_eval_batch_size']
+    
+    # BART-base configuration
+    config = AutoConfig.from_pretrained(model_path)
+    
+    config.decoder_attention_heads = decoder_attention_heads
+    config.decoder_layerdrop = decoder_layerdrop
+    config.decoder_ffn_dim = decoder_ffn_dim
+    config.decoder_layers = decoder_layers
+    
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_path, config=config)
+    data_collator = transformers.DataCollatorForSeq2Seq(tokenizer, model=model)
     
     hyperparameters = {
         "learning_rate": learning_rate,
