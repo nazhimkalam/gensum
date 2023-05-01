@@ -6,11 +6,13 @@ This project contains 3 directories which are the frontend, backend and datascie
 
 To run the frontend, navigate to the frontend directory and run the following command:
 
+    npm install
     npm start
 
     
 To run the backend, navigate to the backend directory and run the following command:
 
+    pip install -r requirements.txt
     python app.py
 
     
