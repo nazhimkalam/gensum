@@ -19,6 +19,10 @@ from utils.data_preprocessing import handle_data_preprocessing
 from utils.model_retraining import model_customization
 from utils.types import DOMAIN_TYPES
 
+"""
+    This file contains all the functions that are used to handle the API requests.
+"""
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -326,17 +330,12 @@ def handleWritingDataIntoDatabase():
             numberOfDataRecords = 250
         
             dataset_array = df.iloc[:numberOfDataRecords].values  
-            # print("The length of the dataset is", len(dataset_array))
-            # print("This is the content of the array", dataset_array)
-            # print("This the columns of the dataset", df.info())
             for row in dataset_array:
                 db.collection('users').document(userId).collection('reviews').add({
                     'review': fernet.encrypt(row[0].encode()),
                     'summary': fernet.encrypt(row[1].encode()),
                     'createdAt': firestore.SERVER_TIMESTAMP,
                 })
-                # i dont want to set but i want to append or add to the existing data
-            # print("Completed writing the data into the database")
             return {'message': "Completed writing the data into the database"}, 200
         
             
@@ -349,8 +348,6 @@ def retrainDomainSpecifcModel():
     try:
         data = request.get_json()
         newReviewSummaryData = []
-
-        # The user id is only needed to save the model in the respective folder
         userId = data['userId'] 
         
         print('Finding user from database...')
@@ -363,11 +360,9 @@ def retrainDomainSpecifcModel():
         print('Getting receiver email...')
         email_receiver = userMetadata['email']
         
-        # Using the domainType, we can get all the data from other users which have been given access for retraining
         print('Getting domain type...')
         domainType = userMetadata['type']
         
-        # we can have a radio button in the frontend to select if the user wants to retrain only with their data or with the other users data as well
         isUseOtherData = data['isUseOtherData']
         print('Email trigger for retraining the model...')
         triggerEmailNotification("Retraining the gensum model", "Your model is preparing for retraining, you will be notified once the model is retrained", email_receiver)
@@ -382,7 +377,6 @@ def retrainDomainSpecifcModel():
                 reviews = db.collection('users').document(user.id).collection('reviews').get()
                 for review in reviews:
                     newReviewSummaryData.append(review.to_dict())
-
         else:
             user = db.collection('users').document(userId).get()
             if user.exists:

@@ -4,6 +4,16 @@ from typing import Dict, List, Optional, Set, Text, Tuple, Union
 import contractions
 from utils.constants import CHAT_WORDS_STR
 
+"""
+    This file contains all the functions that are used to preprocess the data.
+    The functions are:
+        1. md_links: Removes the markdown links from the text.
+        2. scrape_links: Removes the links from the text.
+        3. remove_html_tags: Removes the html tags from the text.
+        4. chat_words_conversion: Converts the chat words to their original form.
+        5. en_contractions: Converts the english contractions to their original form.
+        6. handle_data_preprocessing: Handles the data preprocessing.
+"""
 
 def md_links(text: Text) -> Text:
     markdown_link=re.compile(r'\[.*?\]\(.*?\)')
@@ -18,15 +28,14 @@ def remove_html_tags(text: Text) -> Text:
     return html.sub(r'',text)
 
 def chat_words_conversion(text: Text) -> Text:
-    # First, we're going to convert this long string into set of words and its shortcut
     chat_words_map_dict = {}
     chat_shortcut_list = set()
     for line in CHAT_WORDS_STR.split("\n"):
         if line != '':
-            shortcut = line.split('=')[0] # split the line from `=` sign and select shortcut
+            shortcut = line.split('=')[0] 
             chat_words = line.split('=')[1]
-            chat_shortcut_list.add(shortcut) # add the chat  shortcut to the set
-            chat_words_map_dict[shortcut] = chat_words # add each chat_words corresponding to its shortcut
+            chat_shortcut_list.add(shortcut) 
+            chat_words_map_dict[shortcut] = chat_words 
 
     chat_words_map_dict
 

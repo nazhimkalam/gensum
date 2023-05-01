@@ -10,10 +10,25 @@ from datasets import load_metric
 from transformers import Seq2SeqTrainer, Seq2SeqTrainingArguments
 from transformers import AutoConfig, AutoModelForSeq2SeqLM
 
+"""
+    This file contains the code for model retraining and hyperparameter tuning.
+    The functions are:
+        1. model_customization: Performs the model retraining and hyperparameter tuning.
+        2. objective: The objective function for hyperparameter tuning.
+        3. train: Trains the model.
+        4. compute_metrics: Computes the metrics for the model.
+        5. hyperparameter_tuning: Performs the hyperparameter tuning.
+        6. save_model: Saves the model.
+        7. load_model: Loads the model.
+"""
+
+# Model training parameters
 LR_MIN = 4e-5
 LR_CEIL = 0.01
 WD_MIN = 4e-5
 WD_CEIL = 0.01
+WARMUP_RATIO_MIN = 0.0
+WARMUP_RATIO_MAX = 1.0
 MIN_EPOCHS = 8
 MAX_EPOCHS = 15
 PER_DEVICE_EVAL_BATCH = 4
@@ -27,15 +42,21 @@ SAVE_DIR = 'checkpoints'
 MODEL_NAME = 'bart-base_model'
 TOKENIZER_NAME = 'bart-base_tokenizer'
 
+# Model customization parameters
+DECODER_ATTENTION_HEADS_RANGE = [2, 3, 4, 6, 8, 12, 16]
+DECODER_FFN_DIM_MIN = 1024
+DECODER_FFN_DIM_MAX = 4096
+DECODER_LAYERDROP_MIN = 0.0
+DECODER_LAYERDROP_MAX = 0.3
+DECODER_LAYERS_MIN = 4
+DECODER_LAYERS_MAX = 12
+
 def print_custom(text):
     print('\n')
     print(text)
     print('-'*100)
 
 def model_customization(newData, userId, model_path, tokenizer, db):
-    # note that we will be takening the model and tokenizer which is equal to the userId and train it on the new dataset
-    # and then we will be saving the model and tokenizer in the same folder as the userId
-    # and then we will be returning the model and tokenizer
     metric = load_metric('rouge')
     
     def preprocess_data(data_to_process):
@@ -57,27 +78,24 @@ def model_customization(newData, userId, model_path, tokenizer, db):
     tokenize_data = data.map(preprocess_data, batched = True, remove_columns=['review', 'summary'])
     print("printing tokenized data: ", tokenize_data)
     
-    print_custom('Performing hyperparameter training....')
+    print_custom('Performing model cuztomization and hyperparameter tuning....')
     def objective(trial: optuna.Trial):
         # Load the base configuration for BART
         config = AutoConfig.from_pretrained(model_path)
         
         # Set the decoder parameters to values suggested by Optuna
-        config.decoder_attention_heads = trial.suggest_categorical('decoder_attention_heads', [2, 3, 4, 6, 8, 12, 16])
-        config.decoder_ffn_dim = trial.suggest_int('decoder_ffn_dim', 1024, 4096)
-        config.decoder_layerdrop = trial.suggest_uniform('decoder_layerdrop', 0.0, 0.3)
-        config.decoder_layers = trial.suggest_int('decoder_layers', 4, 12)
+        config.decoder_attention_heads = trial.suggest_categorical('decoder_attention_heads', DECODER_ATTENTION_HEADS_RANGE)
+        config.decoder_ffn_dim = trial.suggest_int('decoder_ffn_dim', DECODER_FFN_DIM_MIN, DECODER_FFN_DIM_MAX)
+        config.decoder_layerdrop = trial.suggest_uniform('decoder_layerdrop', DECODER_LAYERDROP_MIN, DECODER_LAYERDROP_MAX)
+        config.decoder_layers = trial.suggest_int('decoder_layers', DECODER_LAYERS_MIN, DECODER_LAYERS_MAX)
         config.decoder_start_token_id = 1
         
-        # Ensure that embed_dim is divisible by decoder_attention_heads
         if config.d_model % config.decoder_attention_heads != 0:
             config.decoder_attention_heads = config.d_model // 64
         
-        # Instantiate the model with the modified configuration
         model = AutoModelForSeq2SeqLM.from_pretrained(model_path, config=config)
         data_collator = transformers.DataCollatorForSeq2Seq(tokenizer, model=model)
         
-        # Specify the training arguments and hyperparameter tune every arguments which are possible to tune
         training_args = Seq2SeqTrainingArguments(
             output_dir=SAVE_DIR,
             save_strategy="epoch",
@@ -85,7 +103,7 @@ def model_customization(newData, userId, model_path, tokenizer, db):
             learning_rate=trial.suggest_float("learning_rate", LR_MIN, LR_CEIL, log=True),
             weight_decay=trial.suggest_float("weight_decay", WD_MIN, WD_CEIL, log=True),
             num_train_epochs=trial.suggest_int("num_train_epochs", MIN_EPOCHS, MAX_EPOCHS),
-            warmup_ratio=trial.suggest_float("warmup_ratio", 0.0, 1.0),
+            warmup_ratio=trial.suggest_float("warmup_ratio", WARMUP_RATIO_MIN, WARMUP_RATIO_MAX),
             per_device_train_batch_size=trial.suggest_int("per_device_train_batch_size", MIN_BATCH_SIZE, MAX_BATCH_SIZE),
             per_device_eval_batch_size=trial.suggest_int("per_device_eval_batch_size", MIN_BATCH_SIZE, MAX_BATCH_SIZE),
             save_total_limit=1,
@@ -96,7 +114,6 @@ def model_customization(newData, userId, model_path, tokenizer, db):
             report_to="none",
         )
         
-        # Create the trainer
         trainer = Seq2SeqTrainer(
             model=model,
             args=training_args,

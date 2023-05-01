@@ -2,6 +2,11 @@ import torch
 import torch.nn as nn
 import transformers
 
+"""
+    This script shows how to combine two transformer models to create a hybrid model.
+    This is just an experimentation and not a part of the project.
+"""
+
 bart_model_name = 'facebook/bart-base'
 t5_model_name = 't5-base'
 

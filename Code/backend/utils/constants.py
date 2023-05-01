@@ -1,3 +1,5 @@
+"""Constants used in the backend."""
+
 CHAT_WORDS_STR = """
 AFAIK=As Far As I Know
 AFK=Away From Keyboard
