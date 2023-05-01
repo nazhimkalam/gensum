@@ -436,6 +436,7 @@ def retrainDomainSpecifcModel():
         return jsonify({'message': 'Success!'}), 200
 
     except Exception as e:
+        triggerEmailNotification("Model retraining failed", "The model retraining has failed, please try again later", email_receiver)
         return {'message': str(e)}, 500
 
 if __name__ == '__main__':

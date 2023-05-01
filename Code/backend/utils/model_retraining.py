@@ -86,14 +86,15 @@ def model_customization(newData, userId, model_path, tokenizer, db):
         # Set the decoder parameters to values suggested by Optuna
         config.decoder_attention_heads = trial.suggest_categorical('decoder_attention_heads', DECODER_ATTENTION_HEADS_RANGE)
         config.decoder_ffn_dim = trial.suggest_int('decoder_ffn_dim', DECODER_FFN_DIM_MIN, DECODER_FFN_DIM_MAX)
-        config.decoder_layerdrop = trial.suggest_uniform('decoder_layerdrop', DECODER_LAYERDROP_MIN, DECODER_LAYERDROP_MAX)
+        config.decoder_layerdrop = trial.suggest_float('decoder_layerdrop', DECODER_LAYERDROP_MIN, DECODER_LAYERDROP_MAX)
         config.decoder_layers = trial.suggest_int('decoder_layers', DECODER_LAYERS_MIN, DECODER_LAYERS_MAX)
         config.decoder_start_token_id = 1
         
         if config.d_model % config.decoder_attention_heads != 0:
             config.decoder_attention_heads = config.d_model // 64
         
-        model = AutoModelForSeq2SeqLM.from_pretrained(model_path, config=config)
+        # Load the pre-trained weights with ignore_mismatched_sizes=True
+        model = AutoModelForSeq2SeqLM.from_pretrained(model_path, config=config, ignore_mismatched_sizes=True)
         data_collator = transformers.DataCollatorForSeq2Seq(tokenizer, model=model)
         
         training_args = Seq2SeqTrainingArguments(
